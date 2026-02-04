@@ -1,26 +1,385 @@
 @import "tailwindcss";
 
+/* ========================================
+   UNTYPED CLOTHING - Street Style Theme
+   ======================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Colors */
+  --black: #0a0a0a;
+  --white: #fafafa;
+  --red: #e60012;
+  --neon-yellow: #f0ff00;
+  --gray: #1a1a1a;
+  --gray-light: #2a2a2a;
+  --gray-dark: #0f0f0f;
+  
+  /* Background & Foreground */
+  --background: var(--black);
+  --foreground: var(--white);
+  
+  /* Accent Colors */
+  --accent-primary: var(--red);
+  --accent-secondary: var(--neon-yellow);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-red: var(--red);
+  --color-neon: var(--neon-yellow);
+  --color-gray: var(--gray);
+  --color-gray-light: var(--gray-light);
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-graffiti: 'Permanent Marker', cursive;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ========================================
+   Base Styles
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-vietnam), 'Be Vietnam Pro', Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--red);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff1a2e;
+}
+
+/* ========================================
+   Typography
+   ======================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-vietnam), 'Be Vietnam Pro', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+    text-shadow: -2px 0 var(--red), 2px 0 var(--neon-yellow);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+    text-shadow: 2px 0 var(--red), -2px 0 var(--neon-yellow);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+    text-shadow: 2px 0 var(--neon-yellow), -2px 0 var(--red);
+  }
+  60% {
+    transform: translate(2px, 2px);
+    text-shadow: -2px 0 var(--red), 2px 0 var(--neon-yellow);
+  }
+  80% {
+    transform: translate(2px, -2px);
+    text-shadow: 2px 0 var(--red), -2px 0 var(--neon-yellow);
+  }
+  100% {
+    transform: translate(0);
+    text-shadow: -2px 0 var(--red), 2px 0 var(--neon-yellow);
+  }
+}
+
+@keyframes pulse-neon {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow), 0 0 40px var(--neon-yellow);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+.glitch-text {
+  animation: glitch 0.5s infinite;
+}
+
+.glitch-text:hover {
+  animation: glitch 0.1s infinite;
+}
+
+.neon-glow {
+  animation: pulse-neon 2s infinite;
+}
+
+.slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+/* Street Style Button */
+.btn-street {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 32px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.125rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-street::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-street:hover::before {
+  left: 100%;
+}
+
+.btn-street:hover {
+  background: #ff1a2e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(230, 0, 18, 0.4);
+}
+
+.btn-street-outline {
+  background: transparent;
+  border: 2px solid var(--white);
+  color: var(--white);
+}
+
+.btn-street-outline:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+.btn-neon {
+  background: var(--neon-yellow);
+  color: var(--black);
+}
+
+.btn-neon:hover {
+  animation: pulse-neon 0.5s;
+  box-shadow: 0 0 20px var(--neon-yellow);
+}
+
+/* Card Styles */
+.card-street {
+  background: var(--gray);
+  border: 1px solid var(--gray-light);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card-street:hover {
+  border-color: var(--red);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(230, 0, 18, 0.2);
+}
+
+/* Grunge Overlay */
+.grunge-overlay {
+  position: relative;
+}
+
+.grunge-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+/* Marquee */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marquee 20s linear infinite;
+}
+
+/* Badge Styles */
+.badge-new {
+  background: var(--neon-yellow);
+  color: var(--black);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.badge-sale {
+  background: var(--red);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.badge-hot {
+  background: linear-gradient(135deg, var(--red), #ff6b00);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+/* Section Styles */
+.section-title {
+  position: relative;
+  display: inline-block;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: var(--red);
+}
+
+/* Input Styles */
+.input-street {
+  background: var(--gray);
+  border: 1px solid var(--gray-light);
+  color: var(--white);
+  padding: 12px 16px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-street:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(230, 0, 18, 0.2);
+}
+
+.input-street::placeholder {
+  color: #666;
+}
+
+/* Container */
+.container-street {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .container-street {
+    padding: 0 2rem;
+  }
+}
+
+/* Grid Layouts */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
 }
