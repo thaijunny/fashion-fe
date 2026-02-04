@@ -733,6 +733,9 @@ export default function StudioPage() {
                     if (editingTextId === element.id) return; // Don't drag while editing
                     handleMouseDown(e, element.id);
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent deselecting when clicking on element
+                  }}
                   onDoubleClick={() => {
                     if (element.type === 'text') {
                       setEditingTextId(element.id);
