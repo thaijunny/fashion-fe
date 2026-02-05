@@ -46,6 +46,15 @@ const productTypes = [
     icon: '👕',
     width: 400,
     height: 500,
+    // Size-specific real-world dimensions (cm)
+    sizes: {
+      S:    { realWidth: 46, realHeight: 66, printArea: { width: 26, height: 34 } },
+      M:    { realWidth: 48, realHeight: 68, printArea: { width: 28, height: 36 } },
+      L:    { realWidth: 50, realHeight: 70, printArea: { width: 30, height: 38 } },
+      XL:   { realWidth: 52, realHeight: 72, printArea: { width: 32, height: 40 } },
+      XXL:  { realWidth: 56, realHeight: 74, printArea: { width: 34, height: 42 } },
+      XXXL: { realWidth: 60, realHeight: 76, printArea: { width: 36, height: 44 } },
+    },
     variants: {
       front: {
         name: 'Mặt Trước',
@@ -65,6 +74,15 @@ const productTypes = [
     icon: '🧥',
     width: 450,
     height: 550,
+    // Size-specific real-world dimensions (cm)
+    sizes: {
+      S:    { realWidth: 50, realHeight: 68, printArea: { width: 28, height: 36 } },
+      M:    { realWidth: 53, realHeight: 71, printArea: { width: 30, height: 38 } },
+      L:    { realWidth: 56, realHeight: 74, printArea: { width: 32, height: 40 } },
+      XL:   { realWidth: 59, realHeight: 77, printArea: { width: 34, height: 42 } },
+      XXL:  { realWidth: 62, realHeight: 80, printArea: { width: 36, height: 44 } },
+      XXXL: { realWidth: 66, realHeight: 83, printArea: { width: 38, height: 46 } },
+    },
     variants: {
       front: {
         name: 'Mặt Trước',
@@ -79,6 +97,10 @@ const productTypes = [
     }
   },
 ];
+
+// Available sizes
+const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'] as const;
+type SizeType = typeof sizeOptions[number];
 
 // Sample shapes
 const shapes = [
@@ -242,6 +264,8 @@ const getRotatedCursor = (handle: string, rotation: number = 0): string => {
 export default function StudioPage() {
   const [selectedProduct, setSelectedProduct] = useState(productTypes[0]);
   const [viewSide, setViewSide] = useState<'front' | 'back'>('front');
+  const [selectedSize, setSelectedSize] = useState<SizeType>('L');
+  const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
   const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers'>('templates');
   
   // Separate elements for front and back
@@ -266,6 +290,17 @@ export default function StudioPage() {
 
   // Get current view data
   const currentView = selectedProduct.variants[viewSide];
+
+  // Calculate pixel to cm ratio for real size display
+  const getPixelToCm = useCallback(() => {
+    const designAreaWidthPercent = 100 - currentView.designArea.left - currentView.designArea.right;
+    const designAreaWidthPx = selectedProduct.width * designAreaWidthPercent / 100;
+    const currentSizeData = selectedProduct.sizes[selectedSize];
+    return currentSizeData.printArea.width / designAreaWidthPx; // cm per pixel
+  }, [selectedProduct, currentView, selectedSize]);
+
+  const pixelToCm = getPixelToCm();
+  const currentSizeData = selectedProduct.sizes[selectedSize];
 
   // Handle product change - reset all elements
   const handleProductChange = (product: typeof productTypes[0]) => {
@@ -806,6 +841,176 @@ export default function StudioPage() {
     }
   };
 
+  // Export print data with real dimensions for print shop
+  const exportPrintData = () => {
+    const printData = {
+      designName,
+      product: {
+        id: selectedProduct.id,
+        name: selectedProduct.name,
+        size: selectedSize,
+        realWidth: currentSizeData.realWidth,
+        realHeight: currentSizeData.realHeight,
+        printArea: currentSizeData.printArea,
+      },
+      front: {
+        elements: frontElements.map(el => ({
+          id: el.id,
+          type: el.type,
+          content: el.type === 'text' ? el.content : (el.type === 'image' ? '[BASE64_IMAGE]' : el.content),
+          position: {
+            x: (el.x * pixelToCm).toFixed(2) + ' cm',
+            y: (el.y * pixelToCm).toFixed(2) + ' cm',
+          },
+          size: {
+            width: (el.width * pixelToCm).toFixed(2) + ' cm',
+            height: (el.height * pixelToCm).toFixed(2) + ' cm',
+          },
+          rotation: el.rotation || 0,
+          color: el.color,
+          fontSize: el.fontSize ? (el.fontSize * pixelToCm * 10).toFixed(1) + ' pt' : undefined,
+          fontFamily: el.fontFamily,
+          opacity: el.opacity ?? 100,
+        })),
+      },
+      back: {
+        elements: backElements.map(el => ({
+          id: el.id,
+          type: el.type,
+          content: el.type === 'text' ? el.content : (el.type === 'image' ? '[BASE64_IMAGE]' : el.content),
+          position: {
+            x: (el.x * pixelToCm).toFixed(2) + ' cm',
+            y: (el.y * pixelToCm).toFixed(2) + ' cm',
+          },
+          size: {
+            width: (el.width * pixelToCm).toFixed(2) + ' cm',
+            height: (el.height * pixelToCm).toFixed(2) + ' cm',
+          },
+          rotation: el.rotation || 0,
+          color: el.color,
+          fontSize: el.fontSize ? (el.fontSize * pixelToCm * 10).toFixed(1) + ' pt' : undefined,
+          fontFamily: el.fontFamily,
+          opacity: el.opacity ?? 100,
+        })),
+      },
+      exportedAt: new Date().toISOString(),
+    };
+
+    // Download JSON file
+    const dataStr = JSON.stringify(printData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${designName.replace(/\s+/g, '_')}_print_data.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Download design as PNG image
+  const downloadDesign = async () => {
+    if (!canvasRef.current) return;
+    
+    try {
+      // Create a canvas element for drawing
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size based on product
+      const scale = 3; // Higher resolution for print
+      canvas.width = selectedProduct.width * scale;
+      canvas.height = selectedProduct.height * scale;
+
+      // Draw gray background
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Load and draw product image
+      const productImg = new Image();
+      productImg.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        productImg.onload = resolve;
+        productImg.onerror = reject;
+        productImg.src = currentView.image;
+      });
+      
+      ctx.save();
+      if (selectedProductColor === 'black') {
+        ctx.filter = 'invert(1) grayscale(1) brightness(0.15)';
+      } else {
+        ctx.filter = 'none';
+      }
+      ctx.drawImage(productImg, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      ctx.filter = 'none'; // Reset for elements
+
+      // Calculate design area
+      const designAreaLeft = (currentView.designArea.left / 100) * canvas.width;
+      const designAreaTop = (currentView.designArea.top / 100) * canvas.height;
+      const designAreaWidth = canvas.width * (100 - currentView.designArea.left - currentView.designArea.right) / 100;
+      const designAreaHeight = canvas.height * (100 - currentView.designArea.top - currentView.designArea.bottom) / 100;
+
+      // Draw elements
+      for (const element of elements) {
+        const x = designAreaLeft + (element.x / selectedProduct.width) * designAreaWidth * (100 / (100 - currentView.designArea.left - currentView.designArea.right));
+        const y = designAreaTop + (element.y / selectedProduct.height) * designAreaHeight * (100 / (100 - currentView.designArea.top - currentView.designArea.bottom));
+        const w = (element.width / selectedProduct.width) * designAreaWidth * (100 / (100 - currentView.designArea.left - currentView.designArea.right));
+        const h = (element.height / selectedProduct.height) * designAreaHeight * (100 / (100 - currentView.designArea.top - currentView.designArea.bottom));
+
+        ctx.save();
+        ctx.globalAlpha = (element.opacity ?? 100) / 100;
+        
+        if (element.rotation) {
+          ctx.translate(x + w/2, y + h/2);
+          ctx.rotate((element.rotation * Math.PI) / 180);
+          ctx.translate(-(x + w/2), -(y + h/2));
+        }
+
+        if (element.type === 'text') {
+          ctx.fillStyle = element.color || '#ffffff';
+          ctx.font = `${element.fontWeight || 'bold'} ${(element.fontSize || 24) * scale}px ${element.fontFamily || 'Arial'}`;
+          ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'center';
+          ctx.textBaseline = 'middle';
+          const textX = element.textAlign === 'left' ? x : element.textAlign === 'right' ? x + w : x + w/2;
+          ctx.fillText(element.content || '', textX, y + h/2);
+        } else if (element.type === 'shape') {
+          ctx.fillStyle = element.color || '#e60012';
+          ctx.fillRect(x, y, w, h);
+        } else if (element.type === 'image' && element.content) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = element.content!;
+          });
+          ctx.drawImage(img, x, y, w, h);
+        } else if (element.type === 'sticker') {
+          ctx.font = `${Math.min(w, h) * 0.8}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(element.content || '', x + w/2, y + h/2);
+        }
+        
+        ctx.restore();
+      }
+
+      // Download
+      const link = document.createElement('a');
+      link.download = `${designName.replace(/\s+/g, '_')}_${viewSide}_${selectedSize}.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Không thể tải xuống. Vui lòng thử lại.');
+    }
+  };
+
   // Layer ordering functions
   const bringToFront = () => {
     if (selectedElementIds.length === 0) return;
@@ -1003,9 +1208,19 @@ export default function StudioPage() {
             <Save size={16} />
             Lưu
           </button>
-          <button className="px-4 py-2 text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+          <button 
+            onClick={downloadDesign}
+            className="px-4 py-2 text-gray-300 hover:text-white transition-colors flex items-center gap-2"
+          >
             <Download size={16} />
             Tải xuống
+          </button>
+          <button 
+            onClick={exportPrintData}
+            className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
+            title="Xuất file cho xưởng in với kích thước chính xác (cm)"
+          >
+            📐 Xuất file in
           </button>
           <button className="btn-street text-sm py-2 flex items-center gap-2">
             <ShoppingBag size={16} />
@@ -1064,6 +1279,54 @@ export default function StudioPage() {
                       <span className="text-xs text-gray-300 block truncate">{product.name}</span>
                     </button>
                   ))}
+                </div>
+
+                {/* Size Selector */}
+                <h3 className="text-white font-bold mb-3">Chọn size</h3>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {sizeOptions.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${
+                        selectedSize === size
+                          ? 'bg-[#e60012] text-white'
+                          : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-4 p-2 bg-[#1a1a1a] rounded text-xs text-gray-400">
+                  📐 Vùng in: <span className="text-white font-bold">{currentSizeData.printArea.width}×{currentSizeData.printArea.height} cm</span>
+                </div>
+
+                {/* Garment Color Selector */}
+                <h3 className="text-white font-bold mb-3">Màu áo</h3>
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setSelectedProductColor('white')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${
+                      selectedProductColor === 'white'
+                        ? 'border-white bg-white text-black'
+                        : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                    }`}
+                  >
+                    <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
+                    Trắng
+                  </button>
+                  <button
+                    onClick={() => setSelectedProductColor('black')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${
+                      selectedProductColor === 'black'
+                        ? 'border-white bg-[#1a1a1a] text-white'
+                        : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                    }`}
+                  >
+                    <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
+                    Đen
+                  </button>
                 </div>
 
                 {/* Front/Back Toggle */}
@@ -1213,7 +1476,7 @@ export default function StudioPage() {
         {/* Canvas Area */}
         <main 
           ref={mainAreaRef}
-          className="flex-1 bg-[#0a0a0a] flex items-center justify-center p-8 overflow-auto"
+          className="flex-1 bg-[#1a1a1a] flex items-center justify-center p-8 overflow-auto"
         >
           <div 
             ref={canvasRef}
@@ -1230,7 +1493,12 @@ export default function StudioPage() {
               src={currentView.image} 
               alt={`${selectedProduct.name} - ${currentView.name}`}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ opacity: 1 }}
+              style={{ 
+                opacity: 1,
+                filter: selectedProductColor === 'black' 
+                  ? 'invert(1) grayscale(1) brightness(0.15)' 
+                  : 'none'
+              }}
             />
 
             {/* Design Area */}
@@ -1709,6 +1977,15 @@ export default function StudioPage() {
                     </div>
                   </div>
                 </div>
+                {/* Real size in cm */}
+                <div className="mb-4 p-2 bg-[#0a0a0a] rounded border border-[#2a2a2a]">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[#e60012] font-bold">📐 Kích thước in:</span>
+                    <span className="text-white">
+                      {(selectedElement.width * pixelToCm).toFixed(1)} × {(selectedElement.height * pixelToCm).toFixed(1)} cm
+                    </span>
+                  </div>
+                </div>
 
                 {/* Color */}
                 {(selectedElement.type === 'text' || selectedElement.type === 'shape') && (
@@ -2115,6 +2392,11 @@ export default function StudioPage() {
                             src={selectedProduct.variants.front.image}
                             alt="Front"
                             className="max-h-[450px] object-contain"
+                            style={{ 
+                              filter: selectedProductColor === 'black' 
+                                ? 'invert(1) grayscale(1) brightness(0.15)' 
+                                : 'none'
+                            }}
                           />
                           {/* Front Design Overlay */}
                           <div
@@ -2203,6 +2485,11 @@ export default function StudioPage() {
                             src={selectedProduct.variants.back.image}
                             alt="Back"
                             className="max-h-[450px] object-contain"
+                            style={{ 
+                              filter: selectedProductColor === 'black' 
+                                ? 'invert(1) grayscale(1) brightness(0.15)' 
+                                : 'none'
+                            }}
                           />
                           {/* Back Design Overlay */}
                           <div
