@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
 import { Product } from '@/types';
-import { formatPrice } from '@/data/products';
+import { formatPrice } from '@/lib/api';
 import { useState } from 'react';
 
 interface ProductCardProps {

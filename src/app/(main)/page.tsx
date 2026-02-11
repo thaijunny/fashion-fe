@@ -2,11 +2,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, Truck, Shield, RotateCcw } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
-import { products, getFeaturedProducts } from '@/data/products';
+import { fetchProducts, getFeaturedProducts } from '@/lib/api';
 import { categories } from '@/data/categories';
 
-export default function HomePage() {
-  const featuredProducts = getFeaturedProducts();
+export default async function HomePage() {
+  const allProducts = await fetchProducts();
+  const featuredProducts = getFeaturedProducts(allProducts);
+
 
   return (
     <div className="min-h-screen">

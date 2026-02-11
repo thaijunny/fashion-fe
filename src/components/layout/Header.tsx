@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Search, ShoppingBag, User } from 'lucide-react';
+import { Menu, X, Search, ShoppingBag, User, LogOut, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const navLinks = [
   { href: '/', label: 'Trang Chủ' },
@@ -15,6 +16,8 @@ const navLinks = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, logout, loading } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#2a2a2a]">
@@ -78,13 +81,75 @@ export default function Header() {
               <Search size={20} />
             </button>
 
-            {/* User */}
-            <Link
-              href="/account"
-              className="hidden md:block p-2 text-white hover:text-[#e60012] transition-colors"
-            >
-              <User size={20} />
-            </Link>
+            {/* User / Auth */}
+            {!loading && (
+              user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="hidden md:flex items-center gap-2 p-2 text-white hover:text-[#e60012] transition-colors"
+                  >
+                    {user.avatar_url ? (
+                      <Image
+                        src={user.avatar_url}
+                        alt={user.full_name}
+                        width={28}
+                        height={28}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 bg-[#e60012] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {user.full_name?.charAt(0)?.toUpperCase() || user.email.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium max-w-[100px] truncate hidden lg:block">
+                      {user.full_name || user.email}
+                    </span>
+                    <ChevronDown size={14} className={`transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a1a] border border-[#2a2a2a] shadow-xl shadow-black/50 z-50 overflow-hidden">
+                      <div className="p-4 border-b border-[#2a2a2a]">
+                        <p className="text-white text-sm font-medium truncate">{user.full_name || 'User'}</p>
+                        <p className="text-gray-500 text-xs truncate">{user.email}</p>
+                        {user.role === 'admin' && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-[#f0ff00] text-black text-[10px] font-bold uppercase tracking-wider">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <div className="py-1">
+                        <Link
+                          href="/account"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-[#2a2a2a] transition-colors"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <User size={16} />
+                          Tài khoản
+                        </Link>
+                        <button
+                          onClick={() => { logout(); setIsUserMenuOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-[#e60012] hover:bg-[#2a2a2a] transition-colors"
+                        >
+                          <LogOut size={16} />
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium text-white border border-[#2a2a2a] hover:border-[#e60012] hover:text-[#e60012] transition-colors"
+                >
+                  <User size={16} />
+                  Đăng Nhập
+                </Link>
+              )
+            )}
 
             {/* Cart */}
             <Link
@@ -138,6 +203,26 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {/* Mobile Login/User */}
+            {!loading && !user && (
+              <Link
+                href="/login"
+                className="block py-3 text-[#e60012] font-medium uppercase tracking-wider slide-up"
+                style={{ animationDelay: `${navLinks.length * 0.1}s` }}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Đăng Nhập / Đăng Ký
+              </Link>
+            )}
+            {!loading && user && (
+              <button
+                onClick={() => { logout(); setIsMenuOpen(false); }}
+                className="block w-full text-left py-3 text-gray-400 font-medium uppercase tracking-wider hover:text-[#e60012] transition-colors slide-up"
+                style={{ animationDelay: `${navLinks.length * 0.1}s` }}
+              >
+                Đăng Xuất ({user.full_name || user.email})
+              </button>
+            )}
           </nav>
         </div>
       )}

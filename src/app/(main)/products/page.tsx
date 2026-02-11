@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
-import { products } from '@/data/products';
+import { fetchProducts } from '@/lib/api';
 import { categories } from '@/data/categories';
+import { Product } from '@/types';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -24,6 +25,8 @@ const sortOptions = [
 ];
 
 export default function ProductsPage() {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -32,9 +35,16 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  useEffect(() => {
+    fetchProducts().then((data) => {
+      setAllProducts(data);
+      setIsLoadingProducts(false);
+    });
+  }, []);
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = [...products];
+    let result = [...allProducts];
 
     // Search filter
     if (searchQuery) {
@@ -83,7 +93,7 @@ export default function ProductsPage() {
     }
 
     return result;
-  }, [searchQuery, selectedCategories, selectedSizes, selectedColors, sortBy]);
+  }, [allProducts, searchQuery, selectedCategories, selectedSizes, selectedColors, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);

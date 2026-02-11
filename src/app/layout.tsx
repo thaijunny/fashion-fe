@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import { AuthProvider } from "@/context/AuthContext";
 
 // Be Vietnam Pro - Modern font with full Vietnamese support
 const beVietnamPro = Be_Vietnam_Pro({
@@ -32,11 +31,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className={beVietnamPro.variable}>
       <body className="antialiased min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 pt-[104px] md:pt-[120px]">
+        <AuthProvider>
           {children}
-        </main>
-        <Footer />
+        </AuthProvider>
       </body>
     </html>
   );
