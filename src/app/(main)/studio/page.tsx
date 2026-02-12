@@ -1273,6 +1273,16 @@ export default function StudioPage() {
             <Download size={16} />
             Tải xuống
           </button>
+                    <button
+            onClick={() => {
+              setShowAIModal(true);
+              setGeneratedImages([]);
+            }}
+            className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
+          >
+            <Sparkles size={16} />
+            Sáng tạo AI
+          </button>
           <button
             onClick={exportPrintData}
             className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
@@ -1280,17 +1290,7 @@ export default function StudioPage() {
           >
             📐 Xuất file in
           </button>
-          <button
-            onClick={() => {
-              setShowAIModal(true);
-              setGeneratedImages([]);
-            }}
-            className="px-4 py-2 text-[#e60012] hover:text-white transition-colors flex items-center gap-2 bg-[#e60012]/10 border border-[#e60012]/20 rounded font-bold uppercase tracking-tighter italic"
-          >
-            <Sparkles size={16} />
-            Sáng tạo AI
-          </button>
-          <button className="btn-street text-sm py-2 flex items-center gap-2">
+          <button className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
             <ShoppingBag size={16} />
             Đặt hàng
           </button>
@@ -2722,7 +2722,7 @@ export default function StudioPage() {
                   <Sparkles className="text-[#e60012]" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic leading-none">AI Personal Studio</h2>
+                  <h2 className="text-2xl font-black text-white uppercase">AI Personal Studio</h2>
                   <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">Sáng tạo họa tiết theo chất riêng</p>
                 </div>
               </div>
@@ -2819,7 +2819,7 @@ export default function StudioPage() {
               <button
                 onClick={generateAIImage}
                 disabled={isGenerating}
-                className="btn-street w-full py-5 text-xl font-black italic tracking-tighter flex items-center justify-center gap-3 disabled:opacity-50"
+                className="btn-street w-full py-5 text-xl font-bold text-gray-400 uppercase tracking-widest block flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>

@@ -18,11 +18,12 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]">
           {/* Animated Grid */}
           <div 
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage: 'linear-gradient(#e60012 1px, transparent 1px), linear-gradient(90deg, #e60012 1px, transparent 1px)',
-              backgroundSize: '50px 50px',
-            }}
+            className="absolute inset-0 opacity-40"
+             style={{
+              backgroundImage: "url('/images/background.png')",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',}}
           />
           {/* Red Glow */}
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#e60012]/20 rounded-full blur-[150px]" />
@@ -35,19 +36,18 @@ export default async function HomePage() {
             className="text-5xl md:text-7xl lg:text-9xl font-extrabold mb-6 glitch-text tracking-tight"
           >
             <span className="text-white">UNTYPED</span>
-            <span className="text-[#e60012]"> CLOTHING</span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl mx-auto">
             Thời trang đường phố cho những ai dám sống khác biệt.
             <br />
-            <span className="text-[#f0ff00]">Thiết kế riêng. Phong cách riêng.</span>
+            Thiết kế riêng. Phong cách riêng.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/products" className="btn-street">
+            <Link href="/products" className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
               Khám Phá Ngay
               <ArrowRight className="ml-2" size={20} />
             </Link>
-            <Link href="/studio" className="btn-street btn-neon">
+            <Link href="/studio" className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
               <Sparkles className="mr-2" size={20} />
               Design Studio
             </Link>
