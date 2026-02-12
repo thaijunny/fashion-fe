@@ -20,6 +20,7 @@ import {
   Settings,
   ShoppingBag,
   Sparkles,
+  StickyNote as Sticker,
   Upload,
   Trash2,
   Copy,
@@ -267,7 +268,7 @@ export default function StudioPage() {
   const [viewSide, setViewSide] = useState<'front' | 'back'>('front');
   const [selectedSize, setSelectedSize] = useState<SizeType>('L');
   const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
-  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery'>('templates');
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiPersona, setAiPersona] = useState({
     personality: '',
@@ -1301,10 +1302,11 @@ export default function StudioPage() {
         <aside className="w-16 bg-[#1a1a1a] border-r border-[#2a2a2a] flex flex-col items-center py-4 gap-2">
           {[
             { id: 'templates', icon: Layers, label: 'Templates' },
+            { id: 'ai-gallery', icon: Sparkles, label: 'AI Gallery' },
             { id: 'text', icon: Type, label: 'Text' },
             { id: 'shapes', icon: Square, label: 'Shapes' },
             { id: 'images', icon: ImageIcon, label: 'Images' },
-            { id: 'stickers', icon: Sparkles, label: 'Stickers' },
+            { id: 'stickers', icon: Sticker, label: 'Stickers' },
           ].map((tool) => (
             <button
               key={tool.id}
@@ -1514,6 +1516,52 @@ export default function StudioPage() {
               </>
             )}
 
+
+            {activeTab === 'ai-gallery' && (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-bold">Thư viện AI</h3>
+                  <button
+                    onClick={() => setShowAIModal(true)}
+                    className="text-[10px] bg-[#e60012] text-white px-2 py-1 rounded font-bold uppercase italic"
+                  >
+                    Tạo mới
+                  </button>
+                </div>
+
+                {generatedImages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-[#1a1a1a] rounded-lg border border-dashed border-[#2a2a2a]">
+                    <Sparkles className="text-gray-600 mb-3" size={32} />
+                    <p className="text-gray-400 text-sm mb-4">Chưa có thiết kế AI nào được tạo</p>
+                    <button
+                      onClick={() => setShowAIModal(true)}
+                      className="btn-street text-xs py-2 w-full"
+                    >
+                      Sáng tạo ngay
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {generatedImages.map((url, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => addAIElement(url)}
+                        className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
+                      >
+                        <img src={url} alt="AI Generated" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Plus className="text-white" size={20} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-6 p-3 bg-[#e60012]/5 border border-[#e60012]/20 rounded text-[10px] text-gray-400 italic leading-relaxed">
+                  Thiết kế AI của bạn chỉ được lưu trong phiên làm việc này. Hãy tải xuống hoặc đặt hàng để giữ lại chúng.
+                </div>
+              </>
+            )}
 
             {activeTab === 'stickers' && (
               <>
