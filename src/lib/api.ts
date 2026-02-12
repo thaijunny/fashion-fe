@@ -1,6 +1,14 @@
 import { Product } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const SERVER_URL = API_URL.replace(/\/api$/, '');
+
+// Resolve image path to full URL (for local uploads)
+export function getImageUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${SERVER_URL}${path}`;
+}
 
 export async function fetchProducts(category?: string): Promise<Product[]> {
   try {

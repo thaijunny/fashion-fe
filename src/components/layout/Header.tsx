@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Search, ShoppingBag, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 const navLinks = [
   { href: '/', label: 'Trang Chủ' },
@@ -18,6 +19,7 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
+  const { itemCount } = useCart();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#2a2a2a]">
@@ -157,11 +159,14 @@ export default function Header() {
               className="relative p-2 text-white hover:text-[#e60012] transition-colors"
             >
               <ShoppingBag size={20} />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#e60012] text-white text-xs flex items-center justify-center rounded-full font-bold">
-                0
-              </span>
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#e60012] text-white text-xs flex items-center justify-center rounded-full font-bold animate-fade-in">
+                  {itemCount}
+                </span>
+              )}
             </Link>
           </div>
+
         </div>
       </div>
 

@@ -7,7 +7,7 @@ import { ArrowLeft, ShoppingBag, Heart, Minus, Plus, Check, ChevronRight } from 
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { fetchProductById, fetchProducts, formatPrice } from '@/lib/api';
+import { fetchProductById, fetchProducts, formatPrice, getImageUrl } from '@/lib/api';
 import { Product } from '@/types';
 import ProductCard from '@/components/products/ProductCard';
 
@@ -23,7 +23,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [addedSuccess, setAddedSuccess] = useState(false);
 
   const { addToCart } = useCart();
-  const { user } = useAuth();
+  const { user, openLoginModal } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   const handleAddToCart = async () => {
     if (!user) {
-      router.push('/login');
+      openLoginModal();
       return;
     }
     if (!selectedSize || !selectedColor) return;
@@ -111,7 +111,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {/* Main Image */}
             <div className="relative aspect-[3/4] bg-[#1a1a1a] overflow-hidden group">
               <Image
-                src={product.images[selectedImage]}
+                src={getImageUrl(product.images[selectedImage])}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -132,11 +132,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className={`relative w-20 h-24 overflow-hidden border-2 transition-colors ${
-                      selectedImage === i ? 'border-[#e60012]' : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
-                    }`}
+                    className={`relative w-20 h-24 overflow-hidden border-2 transition-colors ${selectedImage === i ? 'border-[#e60012]' : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
+                      }`}
                   >
-                    <Image src={img} alt={`${product.name} - ${i + 1}`} fill className="object-cover" />
+                    <Image src={getImageUrl(img)} alt={`${product.name} - ${i + 1}`} fill className="object-cover" />
                   </button>
                 ))}
               </div>
@@ -189,11 +188,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all ${
-                      selectedSize === size
-                        ? 'bg-[#e60012] border-[#e60012] text-white'
-                        : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
-                    }`}
+                    className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all ${selectedSize === size
+                      ? 'bg-[#e60012] border-[#e60012] text-white'
+                      : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
+                      }`}
                   >
                     {size}
                   </button>
@@ -211,11 +209,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all relative ${
-                      selectedColor === color
-                        ? 'border-[#e60012] scale-110 ring-2 ring-[#e60012]/30'
-                        : 'border-[#2a2a2a] hover:border-white'
-                    }`}
+                    className={`w-10 h-10 rounded-full border-2 transition-all relative ${selectedColor === color
+                      ? 'border-[#e60012] scale-110 ring-2 ring-[#e60012]/30'
+                      : 'border-[#2a2a2a] hover:border-white'
+                      }`}
                     style={{ backgroundColor: color }}
                     title={colorNames[color] || color}
                   >
@@ -254,11 +251,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart}
-                className={`flex-1 py-4 font-bold uppercase tracking-wider text-sm flex items-center justify-center gap-2 transition-all ${
-                  addedSuccess
-                    ? 'bg-green-600 text-white'
-                    : 'bg-[#e60012] text-white hover:bg-[#ff1a2e]'
-                } disabled:opacity-70`}
+                className={`flex-1 py-4 font-bold uppercase tracking-wider text-sm flex items-center justify-center gap-2 transition-all ${addedSuccess
+                  ? 'bg-green-600 text-white'
+                  : 'bg-[#e60012] text-white hover:bg-[#ff1a2e]'
+                  } disabled:opacity-70`}
               >
                 {addingToCart ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

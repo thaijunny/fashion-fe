@@ -2,13 +2,13 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Save, 
-  Download, 
-  Undo, 
-  Redo, 
-  ZoomIn, 
+import {
+  ArrowLeft,
+  Save,
+  Download,
+  Undo,
+  Redo,
+  ZoomIn,
   ZoomOut,
   Type,
   Image as ImageIcon,
@@ -35,7 +35,8 @@ import {
   Eye,
   X,
   Lock,
-  Unlock
+  Unlock,
+  Plus
 } from 'lucide-react';
 
 // Product templates with actual images (grouped by product type)
@@ -48,11 +49,11 @@ const productTypes = [
     height: 500,
     // Size-specific real-world dimensions (cm)
     sizes: {
-      S:    { realWidth: 46, realHeight: 66, printArea: { width: 26, height: 34 } },
-      M:    { realWidth: 48, realHeight: 68, printArea: { width: 28, height: 36 } },
-      L:    { realWidth: 50, realHeight: 70, printArea: { width: 30, height: 38 } },
-      XL:   { realWidth: 52, realHeight: 72, printArea: { width: 32, height: 40 } },
-      XXL:  { realWidth: 56, realHeight: 74, printArea: { width: 34, height: 42 } },
+      S: { realWidth: 46, realHeight: 66, printArea: { width: 26, height: 34 } },
+      M: { realWidth: 48, realHeight: 68, printArea: { width: 28, height: 36 } },
+      L: { realWidth: 50, realHeight: 70, printArea: { width: 30, height: 38 } },
+      XL: { realWidth: 52, realHeight: 72, printArea: { width: 32, height: 40 } },
+      XXL: { realWidth: 56, realHeight: 74, printArea: { width: 34, height: 42 } },
       XXXL: { realWidth: 60, realHeight: 76, printArea: { width: 36, height: 44 } },
     },
     variants: {
@@ -62,7 +63,7 @@ const productTypes = [
         designArea: { left: 25, top: 20, right: 25, bottom: 30 }
       },
       back: {
-        name: 'Mặt Sau', 
+        name: 'Mặt Sau',
         image: '/images/tshirt-back.png',
         designArea: { left: 25, top: 15, right: 25, bottom: 25 }
       }
@@ -76,11 +77,11 @@ const productTypes = [
     height: 550,
     // Size-specific real-world dimensions (cm)
     sizes: {
-      S:    { realWidth: 50, realHeight: 68, printArea: { width: 28, height: 36 } },
-      M:    { realWidth: 53, realHeight: 71, printArea: { width: 30, height: 38 } },
-      L:    { realWidth: 56, realHeight: 74, printArea: { width: 32, height: 40 } },
-      XL:   { realWidth: 59, realHeight: 77, printArea: { width: 34, height: 42 } },
-      XXL:  { realWidth: 62, realHeight: 80, printArea: { width: 36, height: 44 } },
+      S: { realWidth: 50, realHeight: 68, printArea: { width: 28, height: 36 } },
+      M: { realWidth: 53, realHeight: 71, printArea: { width: 30, height: 38 } },
+      L: { realWidth: 56, realHeight: 74, printArea: { width: 32, height: 40 } },
+      XL: { realWidth: 59, realHeight: 77, printArea: { width: 34, height: 42 } },
+      XXL: { realWidth: 62, realHeight: 80, printArea: { width: 36, height: 44 } },
       XXXL: { realWidth: 66, realHeight: 83, printArea: { width: 38, height: 46 } },
     },
     variants: {
@@ -111,7 +112,7 @@ const shapes = [
 
 // Sample colors
 const colorPalette = [
-  '#e60012', '#f0ff00', '#ffffff', '#000000', 
+  '#e60012', '#f0ff00', '#ffffff', '#000000',
   '#1a1a1a', '#ff6b00', '#00ff88', '#0088ff',
   '#ff00ff', '#8b00ff', '#00ffff', '#ffff00'
 ];
@@ -140,73 +141,73 @@ const fontOptions = [
 
 // Street-style text templates
 const textTemplates = [
-  { 
-    id: 'street-1', 
-    content: 'STREET VIBES', 
-    fontSize: 36, 
+  {
+    id: 'street-1',
+    content: 'STREET VIBES',
+    fontSize: 36,
     fontFamily: "'Anton', sans-serif",
     fontWeight: '400',
     color: '#ffffff',
     preview: 'STREET VIBES'
   },
-  { 
-    id: 'street-2', 
-    content: 'KHÔNG GIỚI HẠN', 
-    fontSize: 32, 
+  {
+    id: 'street-2',
+    content: 'KHÔNG GIỚI HẠN',
+    fontSize: 32,
     fontFamily: "'Be Vietnam Pro', sans-serif",
     fontWeight: '900',
     color: '#e60012',
     preview: 'KHÔNG GIỚI HẠN'
   },
-  { 
-    id: 'street-3', 
-    content: 'BORN TO BE WILD', 
-    fontSize: 28, 
+  {
+    id: 'street-3',
+    content: 'BORN TO BE WILD',
+    fontSize: 28,
     fontFamily: "'Permanent Marker', cursive",
     fontWeight: '400',
     color: '#f0ff00',
     preview: 'BORN TO BE WILD'
   },
-  { 
-    id: 'street-4', 
-    content: 'URBAN STYLE', 
-    fontSize: 40, 
+  {
+    id: 'street-4',
+    content: 'URBAN STYLE',
+    fontSize: 40,
     fontFamily: "'Oswald', sans-serif",
     fontWeight: '700',
     color: '#ffffff',
     preview: 'URBAN STYLE'
   },
-  { 
-    id: 'street-5', 
-    content: 'REBEL SOUL', 
-    fontSize: 34, 
+  {
+    id: 'street-5',
+    content: 'REBEL SOUL',
+    fontSize: 34,
     fontFamily: "'Bangers', cursive",
     fontWeight: '400',
     color: '#00ff88',
     preview: 'REBEL SOUL'
   },
-  { 
-    id: 'street-6', 
-    content: 'PHÁ CÁCH', 
-    fontSize: 38, 
+  {
+    id: 'street-6',
+    content: 'PHÁ CÁCH',
+    fontSize: 38,
     fontFamily: "'Archivo Black', sans-serif",
     fontWeight: '400',
     color: '#ff6b00',
     preview: 'PHÁ CÁCH'
   },
-  { 
-    id: 'street-7', 
-    content: 'NO RULES', 
-    fontSize: 30, 
+  {
+    id: 'street-7',
+    content: 'NO RULES',
+    fontSize: 30,
     fontFamily: "'Russo One', sans-serif",
     fontWeight: '400',
     color: '#0088ff',
     preview: 'NO RULES'
   },
-  { 
-    id: 'street-8', 
-    content: 'TỰ DO', 
-    fontSize: 42, 
+  {
+    id: 'street-8',
+    content: 'TỰ DO',
+    fontSize: 42,
     fontFamily: "'Montserrat', sans-serif",
     fontWeight: '900',
     color: '#ff00ff',
@@ -241,23 +242,23 @@ interface DesignElement {
 const getRotatedCursor = (handle: string, rotation: number = 0): string => {
   // Normalize rotation to 0-360
   const normalizedRotation = ((rotation % 360) + 360) % 360;
-  
+
   // Define cursor order (clockwise from north)
   const cursors = ['n-resize', 'ne-resize', 'e-resize', 'se-resize', 's-resize', 'sw-resize', 'w-resize', 'nw-resize'];
-  
+
   // Map handle to starting index
   const handleMap: { [key: string]: number } = {
     'n': 0, 'ne': 1, 'e': 2, 'se': 3, 's': 4, 'sw': 5, 'w': 6, 'nw': 7
   };
-  
+
   const startIndex = handleMap[handle] ?? 0;
-  
+
   // Calculate how many 45-degree steps to rotate
   const steps = Math.round(normalizedRotation / 45) % 8;
-  
+
   // Get new cursor index
   const newIndex = (startIndex + steps) % 8;
-  
+
   return cursors[newIndex];
 };
 
@@ -267,21 +268,31 @@ export default function StudioPage() {
   const [selectedSize, setSelectedSize] = useState<SizeType>('L');
   const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
   const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers'>('templates');
-  
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiPersona, setAiPersona] = useState({
+    personality: '',
+    birthday: '',
+    zodiac: '',
+    style: 'hiphop',
+    customVibe: ''
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+
   // Separate elements for front and back
   const [frontElements, setFrontElements] = useState<DesignElement[]>([]);
   const [backElements, setBackElements] = useState<DesignElement[]>([]);
-  
+
   // Get current elements based on view side
   const elements = viewSide === 'front' ? frontElements : backElements;
   const setElements = viewSide === 'front' ? setFrontElements : setBackElements;
-  
+
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [zoom, setZoom] = useState(100);
   const [designName, setDesignName] = useState('Thiết kế mới');
   const canvasRef = useRef<HTMLDivElement>(null);
   const mainAreaRef = useRef<HTMLElement>(null);
-  
+
   // Preview modal state
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'3d' | '2d'>('3d');
@@ -332,12 +343,12 @@ export default function StudioPage() {
   const saveToHistory = (newElements: DesignElement[]) => {
     const currentHistory = viewSide === 'front' ? frontHistory : backHistory;
     const currentIndex = viewSide === 'front' ? frontHistoryIndex : backHistoryIndex;
-    
+
     // Slice history up to current index and add new state
     const newHistory = [...currentHistory.slice(0, currentIndex + 1), newElements];
     // Limit history to 50 steps
     const limitedHistory = newHistory.slice(-50);
-    
+
     if (viewSide === 'front') {
       setFrontHistory(limitedHistory);
       setFrontHistoryIndex(limitedHistory.length - 1);
@@ -371,18 +382,18 @@ export default function StudioPage() {
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
-  
+
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const designAreaRef = useRef<HTMLDivElement>(null);
-  
+
   // Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   // Track if change is from undo/redo
   const isUndoRedoingRef = useRef(false);
-  
+
   // Clipboard for copy/paste
   const [clipboard, setClipboard] = useState<DesignElement | null>(null);
 
@@ -396,7 +407,7 @@ export default function StudioPage() {
     const currentElements = viewSide === 'front' ? frontElements : backElements;
     const currentHistory = viewSide === 'front' ? frontHistory : backHistory;
     const lastHistoryState = currentHistory[currentHistory.length - 1];
-    
+
     // Only save if actually different
     if (JSON.stringify(currentElements) !== JSON.stringify(lastHistoryState)) {
       saveToHistory(currentElements);
@@ -407,18 +418,18 @@ export default function StudioPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  
+
   const [isRotating, setIsRotating] = useState(false);
   const [rotateStart, setRotateStart] = useState({ angle: 0, centerX: 0, centerY: 0 });
 
   // Auto-rotation for 3D preview
   useEffect(() => {
     if (!showPreview || !isAutoRotating) return;
-    
+
     const interval = setInterval(() => {
       setPreviewRotation(r => r + 180);
     }, 3000); // Flip every 3 seconds
-    
+
     return () => clearInterval(interval);
   }, [showPreview, isAutoRotating]);
 
@@ -454,9 +465,9 @@ export default function StudioPage() {
       // Check if user is typing in an input
       const activeElement = document.activeElement;
       const tagName = activeElement?.tagName.toLowerCase();
-      const isTyping = tagName === 'input' || tagName === 'textarea' || 
-                       activeElement?.getAttribute('contenteditable') === 'true' ||
-                       editingTextId !== null;
+      const isTyping = tagName === 'input' || tagName === 'textarea' ||
+        activeElement?.getAttribute('contenteditable') === 'true' ||
+        editingTextId !== null;
 
       // Undo: Ctrl+Z
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -511,7 +522,7 @@ export default function StudioPage() {
 
       const rect = designAreaRef.current.getBoundingClientRect();
       const scale = zoom / 100;
-      
+
       const deltaX = (e.clientX - dragOffset.x) / scale;
       const deltaY = (e.clientY - dragOffset.y) / scale;
 
@@ -561,7 +572,7 @@ export default function StudioPage() {
       const radians = -rotation * (Math.PI / 180);
       const cos = Math.cos(radians);
       const sin = Math.sin(radians);
-      
+
       // Rotate the delta to align with element's local coordinates
       const deltaX = rawDeltaX * cos - rawDeltaY * sin;
       const deltaY = rawDeltaX * sin + rawDeltaY * cos;
@@ -671,7 +682,7 @@ export default function StudioPage() {
 
     const rect = designAreaRef.current.getBoundingClientRect();
     const scale = zoom / 100;
-    
+
     // Multi-select with Shift key
     if (e.shiftKey) {
       if (selectedElementIds.includes(elementId)) {
@@ -796,6 +807,53 @@ export default function StudioPage() {
     input.click();
   };
 
+  // AI Generation Mock with Persona
+  const generateAIImage = async () => {
+    setIsGenerating(true);
+    // Simulate complex AI reasoning based on persona
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Mock results curated based on style
+    const styleGallery: { [key: string]: string[] } = {
+      hiphop: [
+        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&h=400&fit=crop', // Abstract Dark
+        'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop', // Cyber gradient
+      ],
+      luxury: [
+        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop', // Clean minimalist
+        'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=400&fit=crop', // Tech logo
+      ],
+      simple: [
+        'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=400&h=400&fit=crop', // Geometric
+        'https://images.unsplash.com/photo-1614851012115-59269bb0d6e6?w=400&h=400&fit=crop', // Minimalist
+      ],
+      cyberpunk: [
+        'https://images.unsplash.com/photo-1635776062127-d379bfcbb9c8?w=400&h=400&fit=crop', // Glitch art
+        'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop', // Neon abstract
+      ]
+    };
+
+    const results = styleGallery[aiPersona.style] || styleGallery.hiphop;
+    setGeneratedImages(results);
+    setIsGenerating(false);
+  };
+
+  const addAIElement = (url: string) => {
+    const newElement: DesignElement = {
+      id: `ai-${Date.now()}`,
+      type: 'image',
+      x: 100,
+      y: 150,
+      width: 150,
+      height: 150,
+      content: url,
+      opacity: 100,
+    };
+    setElements([...elements, newElement]);
+    setSelectedElementIds([newElement.id]);
+    setShowAIModal(false); // Close modal after selection
+  };
+
   const deleteSelectedElement = () => {
     if (selectedElementIds.length > 0) {
       setElements(elements.filter(el => !selectedElementIds.includes(el.id)));
@@ -912,7 +970,7 @@ export default function StudioPage() {
   // Download design as PNG image
   const downloadDesign = async () => {
     if (!canvasRef.current) return;
-    
+
     try {
       // Create a canvas element for drawing
       const canvas = document.createElement('canvas');
@@ -936,7 +994,7 @@ export default function StudioPage() {
         productImg.onerror = reject;
         productImg.src = currentView.image;
       });
-      
+
       ctx.save();
       if (selectedProductColor === 'black') {
         ctx.filter = 'invert(1) grayscale(1) brightness(0.15)';
@@ -962,11 +1020,11 @@ export default function StudioPage() {
 
         ctx.save();
         ctx.globalAlpha = (element.opacity ?? 100) / 100;
-        
+
         if (element.rotation) {
-          ctx.translate(x + w/2, y + h/2);
+          ctx.translate(x + w / 2, y + h / 2);
           ctx.rotate((element.rotation * Math.PI) / 180);
-          ctx.translate(-(x + w/2), -(y + h/2));
+          ctx.translate(-(x + w / 2), -(y + h / 2));
         }
 
         if (element.type === 'text') {
@@ -974,8 +1032,8 @@ export default function StudioPage() {
           ctx.font = `${element.fontWeight || 'bold'} ${(element.fontSize || 24) * scale}px ${element.fontFamily || 'Arial'}`;
           ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'center';
           ctx.textBaseline = 'middle';
-          const textX = element.textAlign === 'left' ? x : element.textAlign === 'right' ? x + w : x + w/2;
-          ctx.fillText(element.content || '', textX, y + h/2);
+          const textX = element.textAlign === 'left' ? x : element.textAlign === 'right' ? x + w : x + w / 2;
+          ctx.fillText(element.content || '', textX, y + h / 2);
         } else if (element.type === 'shape') {
           ctx.fillStyle = element.color || '#e60012';
           ctx.fillRect(x, y, w, h);
@@ -992,9 +1050,9 @@ export default function StudioPage() {
           ctx.font = `${Math.min(w, h) * 0.8}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(element.content || '', x + w/2, y + h/2);
+          ctx.fillText(element.content || '', x + w / 2, y + h / 2);
         }
-        
+
         ctx.restore();
       }
 
@@ -1047,7 +1105,7 @@ export default function StudioPage() {
   // Alignment functions (relative to design area)
   const alignElementLeft = () => {
     if (selectedElementIds.length === 0) return;
-    setElements(elements.map(el => 
+    setElements(elements.map(el =>
       selectedElementIds.includes(el.id) ? { ...el, x: 0 } : el
     ));
   };
@@ -1077,7 +1135,7 @@ export default function StudioPage() {
   // Update functions
   const updateElementColor = (color: string) => {
     if (selectedElementIds.length > 0) {
-      setElements(elements.map(el => 
+      setElements(elements.map(el =>
         selectedElementIds.includes(el.id) ? { ...el, color } : el
       ));
     }
@@ -1085,7 +1143,7 @@ export default function StudioPage() {
 
   const updateElementOpacity = (opacity: number) => {
     if (selectedElementIds.length > 0) {
-      setElements(elements.map(el => 
+      setElements(elements.map(el =>
         selectedElementIds.includes(el.id) ? { ...el, opacity } : el
       ));
     }
@@ -1093,7 +1151,7 @@ export default function StudioPage() {
 
   const updateTextAlign = (textAlign: 'left' | 'center' | 'right') => {
     if (selectedElementIds.length > 0) {
-      setElements(elements.map(el => 
+      setElements(elements.map(el =>
         selectedElementIds.includes(el.id) ? { ...el, textAlign } : el
       ));
     }
@@ -1119,7 +1177,7 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={undo}
             disabled={!canUndo}
             className={`p-2 transition-colors ${canUndo ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
@@ -1127,7 +1185,7 @@ export default function StudioPage() {
           >
             <Undo size={18} />
           </button>
-          <button 
+          <button
             onClick={redo}
             disabled={!canRedo}
             className={`p-2 transition-colors ${canRedo ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
@@ -1136,17 +1194,17 @@ export default function StudioPage() {
             <Redo size={18} />
           </button>
           <div className="h-6 w-px bg-[#2a2a2a] mx-2" />
-          <button 
+          <button
             onClick={() => setZoom(z => Math.max(25, z - 10))}
-            className="p-2 text-gray-400 hover:text-white transition-colors" 
+            className="p-2 text-gray-400 hover:text-white transition-colors"
             title="Zoom Out (hoặc Ctrl + Scroll)"
           >
             <ZoomOut size={18} />
           </button>
-          
+
           {/* Zoom dropdown */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowZoomMenu(!showZoomMenu)}
               className="text-gray-400 hover:text-white text-sm w-16 text-center py-1 px-2 rounded hover:bg-[#2a2a2a] transition-colors"
             >
@@ -1161,9 +1219,8 @@ export default function StudioPage() {
                       setZoom(preset);
                       setShowZoomMenu(false);
                     }}
-                    className={`w-full px-4 py-1.5 text-sm text-left hover:bg-[#2a2a2a] transition-colors ${
-                      zoom === preset ? 'text-[#e60012]' : 'text-gray-300'
-                    }`}
+                    className={`w-full px-4 py-1.5 text-sm text-left hover:bg-[#2a2a2a] transition-colors ${zoom === preset ? 'text-[#e60012]' : 'text-gray-300'
+                      }`}
                   >
                     {preset}%
                   </button>
@@ -1182,10 +1239,10 @@ export default function StudioPage() {
               </div>
             )}
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setZoom(z => Math.min(300, z + 10))}
-            className="p-2 text-gray-400 hover:text-white transition-colors" 
+            className="p-2 text-gray-400 hover:text-white transition-colors"
             title="Zoom In (hoặc Ctrl + Scroll)"
           >
             <ZoomIn size={18} />
@@ -1193,7 +1250,7 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => {
               setShowPreview(true);
               setPreviewRotation(0);
@@ -1208,19 +1265,29 @@ export default function StudioPage() {
             <Save size={16} />
             Lưu
           </button>
-          <button 
+          <button
             onClick={downloadDesign}
             className="px-4 py-2 text-gray-300 hover:text-white transition-colors flex items-center gap-2"
           >
             <Download size={16} />
             Tải xuống
           </button>
-          <button 
+          <button
             onClick={exportPrintData}
             className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
             title="Xuất file cho xưởng in với kích thước chính xác (cm)"
           >
             📐 Xuất file in
+          </button>
+          <button
+            onClick={() => {
+              setShowAIModal(true);
+              setGeneratedImages([]);
+            }}
+            className="px-4 py-2 text-[#e60012] hover:text-white transition-colors flex items-center gap-2 bg-[#e60012]/10 border border-[#e60012]/20 rounded font-bold uppercase tracking-tighter italic"
+          >
+            <Sparkles size={16} />
+            Sáng tạo AI
           </button>
           <button className="btn-street text-sm py-2 flex items-center gap-2">
             <ShoppingBag size={16} />
@@ -1242,11 +1309,10 @@ export default function StudioPage() {
             <button
               key={tool.id}
               onClick={() => setActiveTab(tool.id as typeof activeTab)}
-              className={`w-12 h-12 flex flex-col items-center justify-center rounded transition-colors ${
-                activeTab === tool.id
-                  ? 'bg-[#e60012] text-white'
-                  : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'
-              }`}
+              className={`w-12 h-12 flex flex-col items-center justify-center rounded transition-colors ${activeTab === tool.id
+                ? 'bg-[#e60012] text-white'
+                : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'
+                }`}
               title={tool.label}
             >
               <tool.icon size={20} />
@@ -1265,14 +1331,13 @@ export default function StudioPage() {
                     <button
                       key={product.id}
                       onClick={() => handleProductChange(product)}
-                      className={`p-2 rounded-lg border transition-all ${
-                        selectedProduct.id === product.id
-                          ? 'border-[#e60012] bg-[#e60012]/10'
-                          : 'border-[#2a2a2a] hover:border-[#e60012]/50'
-                      }`}
+                      className={`p-2 rounded-lg border transition-all ${selectedProduct.id === product.id
+                        ? 'border-[#e60012] bg-[#e60012]/10'
+                        : 'border-[#2a2a2a] hover:border-[#e60012]/50'
+                        }`}
                     >
-                      <img 
-                        src={product.variants.front.image} 
+                      <img
+                        src={product.variants.front.image}
                         alt={product.name}
                         className="w-full h-20 object-contain mb-2"
                       />
@@ -1288,11 +1353,10 @@ export default function StudioPage() {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${
-                        selectedSize === size
-                          ? 'bg-[#e60012] text-white'
-                          : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${selectedSize === size
+                        ? 'bg-[#e60012] text-white'
+                        : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                     >
                       {size}
                     </button>
@@ -1307,22 +1371,20 @@ export default function StudioPage() {
                 <div className="flex gap-2 mb-6">
                   <button
                     onClick={() => setSelectedProductColor('white')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${
-                      selectedProductColor === 'white'
-                        ? 'border-white bg-white text-black'
-                        : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'white'
+                      ? 'border-white bg-white text-black'
+                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                      }`}
                   >
                     <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
                     Trắng
                   </button>
                   <button
                     onClick={() => setSelectedProductColor('black')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${
-                      selectedProductColor === 'black'
-                        ? 'border-white bg-[#1a1a1a] text-white'
-                        : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'black'
+                      ? 'border-white bg-[#1a1a1a] text-white'
+                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                      }`}
                   >
                     <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
                     Đen
@@ -1334,21 +1396,19 @@ export default function StudioPage() {
                 <div className="flex gap-2 bg-[#1a1a1a] p-1 rounded-lg">
                   <button
                     onClick={() => handleViewSideChange('front')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                      viewSide === 'front'
-                        ? 'bg-[#e60012] text-white'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${viewSide === 'front'
+                      ? 'bg-[#e60012] text-white'
+                      : 'text-gray-400 hover:text-white'
+                      }`}
                   >
                     Mặt Trước
                   </button>
                   <button
                     onClick={() => handleViewSideChange('back')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                      viewSide === 'back'
-                        ? 'bg-[#e60012] text-white'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${viewSide === 'back'
+                      ? 'bg-[#e60012] text-white'
+                      : 'text-gray-400 hover:text-white'
+                      }`}
                   >
                     Mặt Sau
                   </button>
@@ -1366,9 +1426,9 @@ export default function StudioPage() {
                       onClick={() => addTextFromTemplate(template)}
                       className="w-full p-3 bg-[#1a1a1a] text-left hover:bg-[#2a2a2a] transition-colors rounded-lg border border-[#2a2a2a] hover:border-[#e60012]"
                     >
-                      <span 
-                        style={{ 
-                          color: template.color, 
+                      <span
+                        style={{
+                          color: template.color,
                           fontFamily: template.fontFamily,
                           fontWeight: template.fontWeight,
                           fontSize: '16px'
@@ -1396,7 +1456,7 @@ export default function StudioPage() {
                       onClick={() => addTextElement(font.value)}
                       className="w-full p-2 bg-[#1a1a1a] text-left hover:bg-[#2a2a2a] transition-colors rounded flex justify-between items-center"
                     >
-                      <span 
+                      <span
                         className="text-white"
                         style={{ fontFamily: font.value }}
                       >
@@ -1423,7 +1483,7 @@ export default function StudioPage() {
                     </button>
                   ))}
                 </div>
-                
+
                 <h3 className="text-white font-bold mt-6 mb-4">Màu sắc</h3>
                 <div className="grid grid-cols-6 gap-2">
                   {colorPalette.map((color) => (
@@ -1441,7 +1501,7 @@ export default function StudioPage() {
             {activeTab === 'images' && (
               <>
                 <h3 className="text-white font-bold mb-4">Hình ảnh</h3>
-                <button 
+                <button
                   onClick={addImageElement}
                   className="w-full p-6 border border-dashed border-[#2a2a2a] text-gray-400 hover:border-[#e60012] hover:text-[#e60012] transition-colors rounded-lg flex flex-col items-center gap-2"
                 >
@@ -1453,6 +1513,7 @@ export default function StudioPage() {
                 </p>
               </>
             )}
+
 
             {activeTab === 'stickers' && (
               <>
@@ -1474,35 +1535,35 @@ export default function StudioPage() {
         </aside>
 
         {/* Canvas Area */}
-        <main 
+        <main
           ref={mainAreaRef}
           className="flex-1 bg-[#1a1a1a] flex items-center justify-center p-8 overflow-auto"
         >
-          <div 
+          <div
             ref={canvasRef}
             className="relative bg-[#1a1a1a] shadow-2xl flex-shrink-0"
-            style={{ 
-              width: selectedProduct.width * (zoom / 100), 
+            style={{
+              width: selectedProduct.width * (zoom / 100),
               height: selectedProduct.height * (zoom / 100),
               minWidth: selectedProduct.width * (zoom / 100),
               minHeight: selectedProduct.height * (zoom / 100),
             }}
           >
             {/* Product Template Background Image */}
-            <img 
-              src={currentView.image} 
+            <img
+              src={currentView.image}
               alt={`${selectedProduct.name} - ${currentView.name}`}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ 
+              style={{
                 opacity: 1,
-                filter: selectedProductColor === 'black' 
-                  ? 'invert(1) grayscale(1) brightness(0.15)' 
+                filter: selectedProductColor === 'black'
+                  ? 'invert(1) grayscale(1) brightness(0.15)'
                   : 'none'
               }}
             />
 
             {/* Design Area */}
-            <div 
+            <div
               ref={designAreaRef}
               className="absolute"
               style={{
@@ -1518,11 +1579,11 @@ export default function StudioPage() {
                 <div
                   key={element.id}
                   onMouseDown={(e) => {
-                    if (editingTextId === element.id || element.isLocked) return; 
+                    if (editingTextId === element.id || element.isLocked) return;
                     handleMouseDown(e, element.id);
                   }}
                   onClick={(e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                   }}
                   onDoubleClick={() => {
                     if (element.type === 'text' && !element.isLocked) {
@@ -1530,11 +1591,10 @@ export default function StudioPage() {
                       setSelectedElementIds([element.id]);
                     }
                   }}
-                  className={`absolute transition-shadow select-none ${
-                    selectedElementIds.includes(element.id) 
-                      ? 'ring-2 ring-[#e60012] ring-offset-2 ring-offset-[#1a1a1a]' 
-                      : 'hover:ring-1 hover:ring-[#e60012]/50'
-                  } ${element.isLocked ? 'cursor-not-allowed' : 'cursor-move'}
+                  className={`absolute transition-shadow select-none ${selectedElementIds.includes(element.id)
+                    ? 'ring-2 ring-[#e60012] ring-offset-2 ring-offset-[#1a1a1a]'
+                    : 'hover:ring-1 hover:ring-[#e60012]/50'
+                    } ${element.isLocked ? 'cursor-not-allowed' : 'cursor-move'}
                   ${isDragging && selectedElementIds.includes(element.id) && !element.isLocked ? 'cursor-grabbing' : ''}
                   ${editingTextId === element.id ? 'cursor-text' : ''}`}
                   style={{
@@ -1554,7 +1614,7 @@ export default function StudioPage() {
                         autoFocus
                         value={element.content}
                         onChange={(e) => {
-                          setElements(prev => prev.map(el => 
+                          setElements(prev => prev.map(el =>
                             el.id === element.id ? { ...el, content: e.target.value } : el
                           ));
                         }}
@@ -1572,11 +1632,11 @@ export default function StudioPage() {
                           fontFamily: element.fontFamily || "'Be Vietnam Pro', sans-serif",
                           textAlign: element.textAlign || 'center',
                           backgroundColor: element.textBgColor || 'transparent',
-                          textShadow: element.textShadow 
-                            ? `${element.textShadow.x}px ${element.textShadow.y}px ${element.textShadow.blur}px ${element.textShadow.color}` 
+                          textShadow: element.textShadow
+                            ? `${element.textShadow.x}px ${element.textShadow.y}px ${element.textShadow.blur}px ${element.textShadow.color}`
                             : undefined,
-                          WebkitTextStroke: element.textOutline 
-                            ? `${element.textOutline.width}px ${element.textOutline.color}` 
+                          WebkitTextStroke: element.textOutline
+                            ? `${element.textOutline.width}px ${element.textOutline.color}`
                             : undefined,
                           padding: element.textBgColor ? '4px 8px' : undefined,
                           borderRadius: element.textBgColor ? '4px' : undefined,
@@ -1591,14 +1651,14 @@ export default function StudioPage() {
                           fontWeight: element.fontWeight,
                           fontFamily: element.fontFamily || "'Be Vietnam Pro', sans-serif",
                           textAlign: element.textAlign || 'center',
-                          justifyContent: element.textAlign === 'left' ? 'flex-start' : 
-                                          element.textAlign === 'right' ? 'flex-end' : 'center',
+                          justifyContent: element.textAlign === 'left' ? 'flex-start' :
+                            element.textAlign === 'right' ? 'flex-end' : 'center',
                           backgroundColor: element.textBgColor || 'transparent',
-                          textShadow: element.textShadow 
-                            ? `${element.textShadow.x}px ${element.textShadow.y}px ${element.textShadow.blur}px ${element.textShadow.color}` 
+                          textShadow: element.textShadow
+                            ? `${element.textShadow.x}px ${element.textShadow.y}px ${element.textShadow.blur}px ${element.textShadow.color}`
                             : undefined,
-                          WebkitTextStroke: element.textOutline 
-                            ? `${element.textOutline.width}px ${element.textOutline.color}` 
+                          WebkitTextStroke: element.textOutline
+                            ? `${element.textOutline.width}px ${element.textOutline.color}`
                             : undefined,
                           padding: element.textBgColor ? '4px 8px' : undefined,
                           borderRadius: element.textBgColor ? '4px' : undefined,
@@ -1609,14 +1669,14 @@ export default function StudioPage() {
                     )
                   )}
                   {element.type === 'shape' && (
-                    <div 
+                    <div
                       className="w-full h-full pointer-events-none"
                       style={{
                         backgroundColor: element.color,
-                        borderRadius: element.content === 'circle' ? '50%' : 
-                                      element.content === 'triangle' ? '0' : '0',
-                        clipPath: element.content === 'triangle' 
-                          ? 'polygon(50% 0%, 0% 100%, 100% 100%)' 
+                        borderRadius: element.content === 'circle' ? '50%' :
+                          element.content === 'triangle' ? '0' : '0',
+                        clipPath: element.content === 'triangle'
+                          ? 'polygon(50% 0%, 0% 100%, 100% 100%)'
                           : undefined,
                       }}
                     />
@@ -1627,8 +1687,8 @@ export default function StudioPage() {
                     </div>
                   )}
                   {element.type === 'image' && (
-                    <img 
-                      src={element.content} 
+                    <img
+                      src={element.content}
                       alt="Uploaded"
                       className="w-full h-full object-contain pointer-events-none"
                       draggable={false}
@@ -1659,7 +1719,7 @@ export default function StudioPage() {
                         className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#e60012] z-10"
                         style={{ cursor: getRotatedCursor('se', element.rotation) }}
                       />
-                      
+
                       {/* Side handles */}
                       <div
                         onMouseDown={(e) => handleResizeStart(e, 'n')}
@@ -1717,7 +1777,7 @@ export default function StudioPage() {
                   <div className="flex gap-1">
                     <button
                       onClick={() => {
-                        setElements(elements.map(el => 
+                        setElements(elements.map(el =>
                           selectedElementIds.includes(el.id) ? { ...el, isLocked: !el.isLocked } : el
                         ));
                       }}
@@ -1752,9 +1812,8 @@ export default function StudioPage() {
                     <button
                       onClick={bringToFront}
                       disabled={selectedElement.isLocked}
-                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Lên trên cùng"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1765,9 +1824,8 @@ export default function StudioPage() {
                     <button
                       onClick={bringForward}
                       disabled={selectedElement.isLocked}
-                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Lên một lớp"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1778,9 +1836,8 @@ export default function StudioPage() {
                     <button
                       onClick={sendBackward}
                       disabled={selectedElement.isLocked}
-                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Xuống một lớp"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1791,9 +1848,8 @@ export default function StudioPage() {
                     <button
                       onClick={sendToBack}
                       disabled={selectedElement.isLocked}
-                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`p-2 bg-[#1a1a1a] transition-colors rounded text-xs flex flex-col items-center gap-1 ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Xuống dưới cùng"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1811,9 +1867,8 @@ export default function StudioPage() {
                     <button
                       onClick={alignElementLeft}
                       disabled={selectedElement.isLocked}
-                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Căn trái"
                     >
                       <AlignLeft size={16} className="mx-auto" />
@@ -1821,9 +1876,8 @@ export default function StudioPage() {
                     <button
                       onClick={alignElementCenter}
                       disabled={selectedElement.isLocked}
-                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Căn giữa"
                     >
                       <AlignCenter size={16} className="mx-auto" />
@@ -1831,9 +1885,8 @@ export default function StudioPage() {
                     <button
                       onClick={alignElementRight}
                       disabled={selectedElement.isLocked}
-                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${
-                        selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                      }`}
+                      className={`flex-1 p-2 bg-[#1a1a1a] rounded transition-colors ${selectedElement.isLocked ? 'text-gray-600 grayscale' : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                        }`}
                       title="Căn phải"
                     >
                       <AlignRight size={16} className="mx-auto" />
@@ -1853,9 +1906,8 @@ export default function StudioPage() {
                     value={selectedElement.opacity ?? 100}
                     disabled={selectedElement.isLocked}
                     onChange={(e) => updateElementOpacity(parseInt(e.target.value))}
-                    className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${
-                      selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                    }`}
+                    className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                      }`}
                   />
                 </div>
 
@@ -1867,11 +1919,10 @@ export default function StudioPage() {
                       <button
                         onClick={() => updateTextAlign('left')}
                         disabled={selectedElement.isLocked}
-                        className={`flex-1 p-2 transition-colors rounded ${
-                          selectedElement.textAlign === 'left' 
-                            ? 'bg-[#e60012] text-white' 
-                            : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                        } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
+                        className={`flex-1 p-2 transition-colors rounded ${selectedElement.textAlign === 'left'
+                          ? 'bg-[#e60012] text-white'
+                          : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                          } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
                         title="Căn trái"
                       >
                         <AlignLeft size={16} className="mx-auto" />
@@ -1879,11 +1930,10 @@ export default function StudioPage() {
                       <button
                         onClick={() => updateTextAlign('center')}
                         disabled={selectedElement.isLocked}
-                        className={`flex-1 p-2 transition-colors rounded ${
-                          (selectedElement.textAlign === 'center' || !selectedElement.textAlign)
-                            ? 'bg-[#e60012] text-white' 
-                            : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                        } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
+                        className={`flex-1 p-2 transition-colors rounded ${(selectedElement.textAlign === 'center' || !selectedElement.textAlign)
+                          ? 'bg-[#e60012] text-white'
+                          : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                          } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
                         title="Căn giữa"
                       >
                         <AlignCenter size={16} className="mx-auto" />
@@ -1891,11 +1941,10 @@ export default function StudioPage() {
                       <button
                         onClick={() => updateTextAlign('right')}
                         disabled={selectedElement.isLocked}
-                        className={`flex-1 p-2 transition-colors rounded ${
-                          selectedElement.textAlign === 'right' 
-                            ? 'bg-[#e60012] text-white' 
-                            : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                        } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
+                        className={`flex-1 p-2 transition-colors rounded ${selectedElement.textAlign === 'right'
+                          ? 'bg-[#e60012] text-white'
+                          : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                          } ${selectedElement.isLocked ? 'grayscale opacity-50' : ''}`}
                         title="Căn phải"
                       >
                         <AlignRight size={16} className="mx-auto" />
@@ -1916,7 +1965,7 @@ export default function StudioPage() {
                         value={Math.round(selectedElement.x)}
                         onChange={(e) => {
                           const x = parseInt(e.target.value) || 0;
-                          setElements(elements.map(el => 
+                          setElements(elements.map(el =>
                             selectedElementIds.includes(el.id) ? { ...el, x } : el
                           ));
                         }}
@@ -1931,7 +1980,7 @@ export default function StudioPage() {
                         value={Math.round(selectedElement.y)}
                         onChange={(e) => {
                           const y = parseInt(e.target.value) || 0;
-                          setElements(elements.map(el => 
+                          setElements(elements.map(el =>
                             selectedElementIds.includes(el.id) ? { ...el, y } : el
                           ));
                         }}
@@ -1953,7 +2002,7 @@ export default function StudioPage() {
                         value={Math.round(selectedElement.width)}
                         onChange={(e) => {
                           const width = parseInt(e.target.value) || 50;
-                          setElements(elements.map(el => 
+                          setElements(elements.map(el =>
                             selectedElementIds.includes(el.id) ? { ...el, width } : el
                           ));
                         }}
@@ -1968,7 +2017,7 @@ export default function StudioPage() {
                         value={Math.round(selectedElement.height)}
                         onChange={(e) => {
                           const height = parseInt(e.target.value) || 50;
-                          setElements(elements.map(el => 
+                          setElements(elements.map(el =>
                             selectedElementIds.includes(el.id) ? { ...el, height } : el
                           ));
                         }}
@@ -1997,11 +2046,10 @@ export default function StudioPage() {
                           key={color}
                           disabled={selectedElement.isLocked}
                           onClick={() => updateElementColor(color)}
-                          className={`w-6 h-6 rounded border transition-colors ${
-                            selectedElement.color === color 
-                              ? 'border-white' 
-                              : 'border-[#2a2a2a] hover:border-white'
-                          } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-6 h-6 rounded border transition-colors ${selectedElement.color === color
+                            ? 'border-white'
+                            : 'border-[#2a2a2a] hover:border-white'
+                            } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -2048,13 +2096,12 @@ export default function StudioPage() {
                             selectedElementIds.includes(el.id) ? { ...el, fontFamily: e.target.value } : el
                           ));
                         }}
-                        className={`w-full input-street text-sm py-2 bg-[#1a1a1a] text-white border border-[#2a2a2a] rounded cursor-pointer ${
-                          selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                        }`}
+                        className={`w-full input-street text-sm py-2 bg-[#1a1a1a] text-white border border-[#2a2a2a] rounded cursor-pointer ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                          }`}
                       >
                         {fontOptions.map((font) => (
-                          <option 
-                            key={font.id} 
+                          <option
+                            key={font.id}
                             value={font.value}
                             style={{ fontFamily: font.value }}
                           >
@@ -2063,9 +2110,9 @@ export default function StudioPage() {
                         ))}
                       </select>
                       {/* Font Preview */}
-                      <div 
+                      <div
                         className="mt-2 p-2 bg-[#1a1a1a] rounded text-center text-lg"
-                        style={{ 
+                        style={{
                           fontFamily: selectedElement.fontFamily || "'Be Vietnam Pro', sans-serif",
                           color: selectedElement.color || '#ffffff'
                         }}
@@ -2085,17 +2132,16 @@ export default function StudioPage() {
                         disabled={selectedElement.isLocked}
                         onChange={(e) => {
                           const fontSize = parseInt(e.target.value);
-                          setElements(elements.map(el => 
+                          setElements(elements.map(el =>
                             selectedElementIds.includes(el.id) ? { ...el, fontSize } : el
                           ));
                         }}
-                        className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${
-                          selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                        }`}
+                        className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                          }`}
                       />
                     </div>
 
-                    
+
 
                     {/* Text Background */}
                     <div className="mb-4">
@@ -2104,17 +2150,16 @@ export default function StudioPage() {
                         <button
                           onClick={() => {
                             setElements(elements.map(el =>
-                              selectedElementIds.includes(el.id) 
-                                ? { ...el, textBgColor: el.textBgColor ? undefined : '#000000' } 
+                              selectedElementIds.includes(el.id)
+                                ? { ...el, textBgColor: el.textBgColor ? undefined : '#000000' }
                                 : el
                             ));
                           }}
                           disabled={selectedElement.isLocked}
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            selectedElement.textBgColor 
-                              ? 'bg-[#e60012] text-white' 
-                              : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
-                          } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${selectedElement.textBgColor
+                            ? 'bg-[#e60012] text-white'
+                            : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
+                            } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {selectedElement.textBgColor ? 'ON' : 'OFF'}
                         </button>
@@ -2130,9 +2175,8 @@ export default function StudioPage() {
                                 selectedElementIds.includes(el.id) ? { ...el, textBgColor: e.target.value } : el
                               ));
                             }}
-                            className={`w-10 h-10 rounded cursor-pointer border-2 border-[#2a2a2a] ${
-                              selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                            }`}
+                            className={`w-10 h-10 rounded cursor-pointer border-2 border-[#2a2a2a] ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                              }`}
                           />
                           <span className="text-gray-400 text-sm uppercase">{selectedElement.textBgColor}</span>
                         </div>
@@ -2146,17 +2190,16 @@ export default function StudioPage() {
                         <button
                           onClick={() => {
                             setElements(elements.map(el =>
-                              selectedElementIds.includes(el.id) 
-                                ? { ...el, textShadow: el.textShadow ? undefined : { x: 2, y: 2, blur: 4, color: '#000000' } } 
+                              selectedElementIds.includes(el.id)
+                                ? { ...el, textShadow: el.textShadow ? undefined : { x: 2, y: 2, blur: 4, color: '#000000' } }
                                 : el
                             ));
                           }}
                           disabled={selectedElement.isLocked}
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            selectedElement.textShadow 
-                              ? 'bg-[#e60012] text-white' 
-                              : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
-                          } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${selectedElement.textShadow
+                            ? 'bg-[#e60012] text-white'
+                            : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
+                            } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {selectedElement.textShadow ? 'ON' : 'OFF'}
                         </button>
@@ -2172,8 +2215,8 @@ export default function StudioPage() {
                                 onChange={(e) => {
                                   const x = parseInt(e.target.value) || 0;
                                   setElements(elements.map(el =>
-                                    selectedElementIds.includes(el.id) 
-                                      ? { ...el, textShadow: { ...el.textShadow!, x } } 
+                                    selectedElementIds.includes(el.id)
+                                      ? { ...el, textShadow: { ...el.textShadow!, x } }
                                       : el
                                   ));
                                 }}
@@ -2188,8 +2231,8 @@ export default function StudioPage() {
                                 onChange={(e) => {
                                   const y = parseInt(e.target.value) || 0;
                                   setElements(elements.map(el =>
-                                    selectedElementIds.includes(el.id) 
-                                      ? { ...el, textShadow: { ...el.textShadow!, y } } 
+                                    selectedElementIds.includes(el.id)
+                                      ? { ...el, textShadow: { ...el.textShadow!, y } }
                                       : el
                                   ));
                                 }}
@@ -2208,14 +2251,13 @@ export default function StudioPage() {
                               onChange={(e) => {
                                 const blur = parseInt(e.target.value);
                                 setElements(elements.map(el =>
-                                  selectedElementIds.includes(el.id) 
-                                    ? { ...el, textShadow: { ...el.textShadow!, blur } } 
+                                  selectedElementIds.includes(el.id)
+                                    ? { ...el, textShadow: { ...el.textShadow!, blur } }
                                     : el
                                 ));
                               }}
-                              className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${
-                                selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                              }`}
+                              className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                                }`}
                             />
                           </div>
                           <div className="flex gap-2 items-center">
@@ -2225,14 +2267,13 @@ export default function StudioPage() {
                               disabled={selectedElement.isLocked}
                               onChange={(e) => {
                                 setElements(elements.map(el =>
-                                  selectedElementIds.includes(el.id) 
-                                    ? { ...el, textShadow: { ...el.textShadow!, color: e.target.value } } 
+                                  selectedElementIds.includes(el.id)
+                                    ? { ...el, textShadow: { ...el.textShadow!, color: e.target.value } }
                                     : el
                                 ));
                               }}
-                              className={`w-6 h-6 rounded cursor-pointer border-0 ${
-                                selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                              }`}
+                              className={`w-6 h-6 rounded cursor-pointer border-0 ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                                }`}
                             />
                             <span className="text-xs text-gray-400">Màu bóng</span>
                           </div>
@@ -2247,17 +2288,16 @@ export default function StudioPage() {
                         <button
                           onClick={() => {
                             setElements(elements.map(el =>
-                              selectedElementIds.includes(el.id) 
-                                ? { ...el, textOutline: el.textOutline ? undefined : { width: 2, color: '#000000' } } 
+                              selectedElementIds.includes(el.id)
+                                ? { ...el, textOutline: el.textOutline ? undefined : { width: 2, color: '#000000' } }
                                 : el
                             ));
                           }}
                           disabled={selectedElement.isLocked}
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            selectedElement.textOutline 
-                              ? 'bg-[#e60012] text-white' 
-                              : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
-                          } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${selectedElement.textOutline
+                            ? 'bg-[#e60012] text-white'
+                            : 'bg-[#2a2a2a] text-gray-400 hover:text-white'
+                            } ${selectedElement.isLocked ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {selectedElement.textOutline ? 'ON' : 'OFF'}
                         </button>
@@ -2275,14 +2315,13 @@ export default function StudioPage() {
                               onChange={(e) => {
                                 const width = parseInt(e.target.value);
                                 setElements(elements.map(el =>
-                                  selectedElementIds.includes(el.id) 
-                                    ? { ...el, textOutline: { ...el.textOutline!, width } } 
+                                  selectedElementIds.includes(el.id)
+                                    ? { ...el, textOutline: { ...el.textOutline!, width } }
                                     : el
                                 ));
                               }}
-                              className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${
-                                selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                              }`}
+                              className={`w-full h-2 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#e60012] ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                                }`}
                             />
                           </div>
                           <div className="flex gap-2 items-center">
@@ -2292,14 +2331,13 @@ export default function StudioPage() {
                               disabled={selectedElement.isLocked}
                               onChange={(e) => {
                                 setElements(elements.map(el =>
-                                  selectedElementIds.includes(el.id) 
-                                    ? { ...el, textOutline: { ...el.textOutline!, color: e.target.value } } 
+                                  selectedElementIds.includes(el.id)
+                                    ? { ...el, textOutline: { ...el.textOutline!, color: e.target.value } }
                                     : el
                                 ));
                               }}
-                              className={`w-6 h-6 rounded cursor-pointer border-0 ${
-                                selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                              }`}
+                              className={`w-6 h-6 rounded cursor-pointer border-0 ${selectedElement.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                                }`}
                             />
                             <span className="text-xs text-gray-400">Màu viền</span>
                           </div>
@@ -2325,11 +2363,10 @@ export default function StudioPage() {
                     <button
                       key={element.id}
                       onClick={() => setSelectedElementIds([element.id])}
-                      className={`w-full p-2 flex items-center gap-2 text-left text-sm rounded transition-colors ${
-                        selectedElementIds.includes(element.id)
-                          ? 'bg-[#e60012] text-white'
-                          : 'text-gray-400 hover:bg-[#1a1a1a]'
-                      }`}
+                      className={`w-full p-2 flex items-center gap-2 text-left text-sm rounded transition-colors ${selectedElementIds.includes(element.id)
+                        ? 'bg-[#e60012] text-white'
+                        : 'text-gray-400 hover:bg-[#1a1a1a]'
+                        }`}
                     >
                       {element.type === 'text' && <Type size={14} />}
                       {element.type === 'shape' && <Square size={14} />}
@@ -2368,242 +2405,241 @@ export default function StudioPage() {
             <div className="p-8">
               {/* 3D Rotating View */}
               <div className="flex flex-col items-center">
-                  {/* 3D Container */}
-                  <div 
-                    className="relative w-[400px] h-[500px] mb-6"
-                    style={{ perspective: '1000px' }}
+                {/* 3D Container */}
+                <div
+                  className="relative w-[400px] h-[500px] mb-6"
+                  style={{ perspective: '1000px' }}
+                >
+                  <div
+                    className="relative w-full h-full transition-transform duration-700 ease-in-out"
+                    style={{
+                      transformStyle: 'preserve-3d',
+                      transform: `rotateY(${previewRotation}deg)`,
+                    }}
                   >
+                    {/* Front Side */}
                     <div
-                      className="relative w-full h-full transition-transform duration-700 ease-in-out"
+                      className="absolute inset-0 flex items-center justify-center"
                       style={{
-                        transformStyle: 'preserve-3d',
-                        transform: `rotateY(${previewRotation}deg)`,
+                        backfaceVisibility: 'hidden',
                       }}
                     >
-                      {/* Front Side */}
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          backfaceVisibility: 'hidden',
-                        }}
-                      >
-                        <div className="relative">
-                          <img
-                            src={selectedProduct.variants.front.image}
-                            alt="Front"
-                            className="max-h-[450px] object-contain"
-                            style={{ 
-                              filter: selectedProductColor === 'black' 
-                                ? 'invert(1) grayscale(1) brightness(0.15)' 
-                                : 'none'
-                            }}
-                          />
-                          {/* Front Design Overlay */}
-                          <div
-                            className="absolute"
-                            style={{
-                              left: selectedProduct.variants.front.designArea.left + '%',
-                              top: selectedProduct.variants.front.designArea.top + '%',
-                              width: (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) + '%',
-                              height: (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) + '%',
-                            }}
-                          >
-                            {frontElements.map((element) => (
-                              <div
-                                key={element.id}
-                                className="absolute"
-                                style={{
-                                  left: `${(element.x / (selectedProduct.width * (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) / 100)) * 100}%`,
-                                  top: `${(element.y / (selectedProduct.height * (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) / 100)) * 100}%`,
-                                  width: `${(element.width / (selectedProduct.width * (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) / 100)) * 100}%`,
-                                  height: `${(element.height / (selectedProduct.height * (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) / 100)) * 100}%`,
-                                  transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
-                                  opacity: (element.opacity ?? 100) / 100,
-                                }}
-                              >
-                                {element.type === 'text' && (
-                                  <div
-                                    className="w-full h-full flex items-center"
-                                    style={{
-                                      color: element.color,
-                                      fontSize: 'inherit',
-                                      fontWeight: element.fontWeight,
-                                      fontFamily: element.fontFamily,
-                                      textAlign: element.textAlign || 'center',
-                                      justifyContent: element.textAlign === 'left' ? 'flex-start' : 
-                                                      element.textAlign === 'right' ? 'flex-end' : 'center',
-                                      backgroundColor: element.textBgColor,
-                                      textShadow: element.textShadow 
-                                        ? `${element.textShadow.x * 0.5}px ${element.textShadow.y * 0.5}px ${element.textShadow.blur * 0.5}px ${element.textShadow.color}` 
-                                        : undefined,
-                                      WebkitTextStroke: element.textOutline 
-                                        ? `${element.textOutline.width * 0.5}px ${element.textOutline.color}` 
-                                        : undefined,
-                                    }}
-                                  >
-                                    {element.content}
-                                  </div>
-                                )}
-                                {element.type === 'shape' && (
-                                  <div 
-                                    className="w-full h-full rounded" 
-                                    style={{ backgroundColor: element.color }}
-                                  />
-                                )}
-                                {element.type === 'sticker' && (
-                                  <div className="w-full h-full flex items-center justify-center text-2xl">
-                                    {element.content}
-                                  </div>
-                                )}
-                                {element.type === 'image' && (
-                                  <img 
-                                    src={element.content} 
-                                    alt="Uploaded"
-                                    className="w-full h-full object-contain"
-                                    draggable={false}
-                                  />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#e60012] px-3 py-1 rounded text-xs font-bold text-white">
-                            MẶT TRƯỚC
-                          </div>
+                      <div className="relative">
+                        <img
+                          src={selectedProduct.variants.front.image}
+                          alt="Front"
+                          className="max-h-[450px] object-contain"
+                          style={{
+                            filter: selectedProductColor === 'black'
+                              ? 'invert(1) grayscale(1) brightness(0.15)'
+                              : 'none'
+                          }}
+                        />
+                        {/* Front Design Overlay */}
+                        <div
+                          className="absolute"
+                          style={{
+                            left: selectedProduct.variants.front.designArea.left + '%',
+                            top: selectedProduct.variants.front.designArea.top + '%',
+                            width: (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) + '%',
+                            height: (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) + '%',
+                          }}
+                        >
+                          {frontElements.map((element) => (
+                            <div
+                              key={element.id}
+                              className="absolute"
+                              style={{
+                                left: `${(element.x / (selectedProduct.width * (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) / 100)) * 100}%`,
+                                top: `${(element.y / (selectedProduct.height * (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) / 100)) * 100}%`,
+                                width: `${(element.width / (selectedProduct.width * (100 - selectedProduct.variants.front.designArea.left - selectedProduct.variants.front.designArea.right) / 100)) * 100}%`,
+                                height: `${(element.height / (selectedProduct.height * (100 - selectedProduct.variants.front.designArea.top - selectedProduct.variants.front.designArea.bottom) / 100)) * 100}%`,
+                                transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+                                opacity: (element.opacity ?? 100) / 100,
+                              }}
+                            >
+                              {element.type === 'text' && (
+                                <div
+                                  className="w-full h-full flex items-center"
+                                  style={{
+                                    color: element.color,
+                                    fontSize: 'inherit',
+                                    fontWeight: element.fontWeight,
+                                    fontFamily: element.fontFamily,
+                                    textAlign: element.textAlign || 'center',
+                                    justifyContent: element.textAlign === 'left' ? 'flex-start' :
+                                      element.textAlign === 'right' ? 'flex-end' : 'center',
+                                    backgroundColor: element.textBgColor,
+                                    textShadow: element.textShadow
+                                      ? `${element.textShadow.x * 0.5}px ${element.textShadow.y * 0.5}px ${element.textShadow.blur * 0.5}px ${element.textShadow.color}`
+                                      : undefined,
+                                    WebkitTextStroke: element.textOutline
+                                      ? `${element.textOutline.width * 0.5}px ${element.textOutline.color}`
+                                      : undefined,
+                                  }}
+                                >
+                                  {element.content}
+                                </div>
+                              )}
+                              {element.type === 'shape' && (
+                                <div
+                                  className="w-full h-full rounded"
+                                  style={{ backgroundColor: element.color }}
+                                />
+                              )}
+                              {element.type === 'sticker' && (
+                                <div className="w-full h-full flex items-center justify-center text-2xl">
+                                  {element.content}
+                                </div>
+                              )}
+                              {element.type === 'image' && (
+                                <img
+                                  src={element.content}
+                                  alt="Uploaded"
+                                  className="w-full h-full object-contain"
+                                  draggable={false}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#e60012] px-3 py-1 rounded text-xs font-bold text-white">
+                          MẶT TRƯỚC
                         </div>
                       </div>
+                    </div>
 
-                      {/* Back Side */}
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{
-                          backfaceVisibility: 'hidden',
-                          transform: 'rotateY(180deg)',
-                        }}
-                      >
-                        <div className="relative">
-                          <img
-                            src={selectedProduct.variants.back.image}
-                            alt="Back"
-                            className="max-h-[450px] object-contain"
-                            style={{ 
-                              filter: selectedProductColor === 'black' 
-                                ? 'invert(1) grayscale(1) brightness(0.15)' 
-                                : 'none'
-                            }}
-                          />
-                          {/* Back Design Overlay */}
-                          <div
-                            className="absolute"
-                            style={{
-                              left: selectedProduct.variants.back.designArea.left + '%',
-                              top: selectedProduct.variants.back.designArea.top + '%',
-                              width: (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) + '%',
-                              height: (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) + '%',
-                            }}
-                          >
-                            {backElements.map((element) => (
-                              <div
-                                key={element.id}
-                                className="absolute"
-                                style={{
-                                  left: `${(element.x / (selectedProduct.width * (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) / 100)) * 100}%`,
-                                  top: `${(element.y / (selectedProduct.height * (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) / 100)) * 100}%`,
-                                  width: `${(element.width / (selectedProduct.width * (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) / 100)) * 100}%`,
-                                  height: `${(element.height / (selectedProduct.height * (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) / 100)) * 100}%`,
-                                  transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
-                                  opacity: (element.opacity ?? 100) / 100,
-                                }}
-                              >
-                                {element.type === 'text' && (
-                                  <div
-                                    className="w-full h-full flex items-center"
-                                    style={{
-                                      color: element.color,
-                                                                            fontSize: 'inherit',
-                                      fontWeight: element.fontWeight,
-                                      fontFamily: element.fontFamily,
-                                      textAlign: element.textAlign || 'center',
-                                      justifyContent: element.textAlign === 'left' ? 'flex-start' : 
-                                                      element.textAlign === 'right' ? 'flex-end' : 'center',
-                                      backgroundColor: element.textBgColor,
-                                      textShadow: element.textShadow 
-                                        ? `${element.textShadow.x * 0.5}px ${element.textShadow.y * 0.5}px ${element.textShadow.blur * 0.5}px ${element.textShadow.color}` 
-                                        : undefined,
-                                      WebkitTextStroke: element.textOutline 
-                                        ? `${element.textOutline.width * 0.5}px ${element.textOutline.color}` 
-                                        : undefined,
-                                    }}
-                                  >
-                                    {element.content}
-                                  </div>
-                                )}
-                                {element.type === 'shape' && (
-                                  <div 
-                                    className="w-full h-full rounded" 
-                                    style={{ backgroundColor: element.color }}
-                                  />
-                                )}
-                                {element.type === 'sticker' && (
-                                  <div className="w-full h-full flex items-center justify-center text-2xl">
-                                    {element.content}
-                                  </div>
-                                )}
-                                {element.type === 'image' && (
-                                  <img 
-                                    src={element.content} 
-                                    alt="Uploaded"
-                                    className="w-full h-full object-contain"
-                                    draggable={false}
-                                  />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a2a2a] px-3 py-1 rounded text-xs font-bold text-white">
-                            MẶT SAU
-                          </div>
+                    {/* Back Side */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        backfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)',
+                      }}
+                    >
+                      <div className="relative">
+                        <img
+                          src={selectedProduct.variants.back.image}
+                          alt="Back"
+                          className="max-h-[450px] object-contain"
+                          style={{
+                            filter: selectedProductColor === 'black'
+                              ? 'invert(1) grayscale(1) brightness(0.15)'
+                              : 'none'
+                          }}
+                        />
+                        {/* Back Design Overlay */}
+                        <div
+                          className="absolute"
+                          style={{
+                            left: selectedProduct.variants.back.designArea.left + '%',
+                            top: selectedProduct.variants.back.designArea.top + '%',
+                            width: (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) + '%',
+                            height: (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) + '%',
+                          }}
+                        >
+                          {backElements.map((element) => (
+                            <div
+                              key={element.id}
+                              className="absolute"
+                              style={{
+                                left: `${(element.x / (selectedProduct.width * (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) / 100)) * 100}%`,
+                                top: `${(element.y / (selectedProduct.height * (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) / 100)) * 100}%`,
+                                width: `${(element.width / (selectedProduct.width * (100 - selectedProduct.variants.back.designArea.left - selectedProduct.variants.back.designArea.right) / 100)) * 100}%`,
+                                height: `${(element.height / (selectedProduct.height * (100 - selectedProduct.variants.back.designArea.top - selectedProduct.variants.back.designArea.bottom) / 100)) * 100}%`,
+                                transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+                                opacity: (element.opacity ?? 100) / 100,
+                              }}
+                            >
+                              {element.type === 'text' && (
+                                <div
+                                  className="w-full h-full flex items-center"
+                                  style={{
+                                    color: element.color,
+                                    fontSize: 'inherit',
+                                    fontWeight: element.fontWeight,
+                                    fontFamily: element.fontFamily,
+                                    textAlign: element.textAlign || 'center',
+                                    justifyContent: element.textAlign === 'left' ? 'flex-start' :
+                                      element.textAlign === 'right' ? 'flex-end' : 'center',
+                                    backgroundColor: element.textBgColor,
+                                    textShadow: element.textShadow
+                                      ? `${element.textShadow.x * 0.5}px ${element.textShadow.y * 0.5}px ${element.textShadow.blur * 0.5}px ${element.textShadow.color}`
+                                      : undefined,
+                                    WebkitTextStroke: element.textOutline
+                                      ? `${element.textOutline.width * 0.5}px ${element.textOutline.color}`
+                                      : undefined,
+                                  }}
+                                >
+                                  {element.content}
+                                </div>
+                              )}
+                              {element.type === 'shape' && (
+                                <div
+                                  className="w-full h-full rounded"
+                                  style={{ backgroundColor: element.color }}
+                                />
+                              )}
+                              {element.type === 'sticker' && (
+                                <div className="w-full h-full flex items-center justify-center text-2xl">
+                                  {element.content}
+                                </div>
+                              )}
+                              {element.type === 'image' && (
+                                <img
+                                  src={element.content}
+                                  alt="Uploaded"
+                                  className="w-full h-full object-contain"
+                                  draggable={false}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a2a2a] px-3 py-1 rounded text-xs font-bold text-white">
+                          MẶT SAU
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* 3D Controls */}
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => {
-                        setIsAutoRotating(false);
-                        setPreviewRotation(r => r - 180);
-                      }}
-                      className="p-3 bg-[#2a2a2a] text-gray-300 hover:text-white rounded-lg transition-colors"
-                      title="Xoay trái"
-                    >
-                      <RotateCcw size={20} />
-                    </button>
-                    <button
-                      onClick={() => setIsAutoRotating(!isAutoRotating)}
-                      className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                        isAutoRotating 
-                          ? 'bg-[#e60012] text-white' 
-                          : 'bg-[#2a2a2a] text-gray-300 hover:text-white'
-                      }`}
-                    >
-                      {isAutoRotating ? '⏸ Dừng' : '▶ Tự động xoay'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsAutoRotating(false);
-                        setPreviewRotation(r => r + 180);
-                      }}
-                      className="p-3 bg-[#2a2a2a] text-gray-300 hover:text-white rounded-lg transition-colors"
-                      title="Xoay phải"
-                    >
-                      <RotateCw size={20} />
-                    </button>
-                  </div>
-                  <p className="text-gray-500 text-sm mt-3">
-                    Click vào mũi tên hoặc bật tự động xoay để xem cả 2 mặt
-                  </p>
                 </div>
+
+                {/* 3D Controls */}
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => {
+                      setIsAutoRotating(false);
+                      setPreviewRotation(r => r - 180);
+                    }}
+                    className="p-3 bg-[#2a2a2a] text-gray-300 hover:text-white rounded-lg transition-colors"
+                    title="Xoay trái"
+                  >
+                    <RotateCcw size={20} />
+                  </button>
+                  <button
+                    onClick={() => setIsAutoRotating(!isAutoRotating)}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${isAutoRotating
+                      ? 'bg-[#e60012] text-white'
+                      : 'bg-[#2a2a2a] text-gray-300 hover:text-white'
+                      }`}
+                  >
+                    {isAutoRotating ? '⏸ Dừng' : '▶ Tự động xoay'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAutoRotating(false);
+                      setPreviewRotation(r => r + 180);
+                    }}
+                    className="p-3 bg-[#2a2a2a] text-gray-300 hover:text-white rounded-lg transition-colors"
+                    title="Xoay phải"
+                  >
+                    <RotateCw size={20} />
+                  </button>
+                </div>
+                <p className="text-gray-500 text-sm mt-3">
+                  Click vào mũi tên hoặc bật tự động xoay để xem cả 2 mặt
+                </p>
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -2623,6 +2659,162 @@ export default function StudioPage() {
                   Đặt hàng ngay
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* AI Design Modal */}
+      {showAIModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAIModal(false)} />
+          <div className="relative bg-[#111] border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
+            <div className="sticky top-0 bg-[#111] border-b border-[#2a2a2a] p-6 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#e60012]/20 rounded-full flex items-center justify-center">
+                  <Sparkles className="text-[#e60012]" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic leading-none">AI Personal Studio</h2>
+                  <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">Sáng tạo họa tiết theo chất riêng</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAIModal(false)}
+                className="text-gray-500 hover:text-white p-2 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-8">
+              {/* Persona Fields */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Tính cách bản thân</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Nổi loạn, Tinh tế, Năng động..."
+                    value={aiPersona.personality}
+                    onChange={(e) => setAiPersona({ ...aiPersona, personality: e.target.value })}
+                    className="input-street w-full !py-3"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Ngày sinh / Cung hoàng đạo</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="12/05/2000"
+                      value={aiPersona.birthday}
+                      onChange={(e) => setAiPersona({ ...aiPersona, birthday: e.target.value })}
+                      className="input-street w-full !py-3 !px-3"
+                    />
+                    <select
+                      value={aiPersona.zodiac}
+                      onChange={(e) => setAiPersona({ ...aiPersona, zodiac: e.target.value })}
+                      className="input-street w-full !py-3 !px-3 bg-[#0a0a0a]"
+                    >
+                      <option value="">Chọn cung</option>
+                      <option value="Aries">Bạch Dương</option>
+                      <option value="Taurus">Kim Ngưu</option>
+                      <option value="Gemini">Song Tử</option>
+                      <option value="Cancer">Cự Giải</option>
+                      <option value="Leo">Sư Tử</option>
+                      <option value="Virgo">Xử Nữ</option>
+                      <option value="Libra">Thiên Bình</option>
+                      <option value="Scorpio">Bọ Cạp</option>
+                      <option value="Sagittarius">Nhân Mã</option>
+                      <option value="Capricorn">Ma Kết</option>
+                      <option value="Aquarius">Bảo Bình</option>
+                      <option value="Pisces">Song Ngư</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Style Selector */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Phong cách mong muốn</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { id: 'hiphop', label: 'Hiphop 🎤' },
+                    { id: 'luxury', label: 'Luxury 💎' },
+                    { id: 'simple', label: 'Simple ⚪' },
+                    { id: 'cyberpunk', label: 'Cyber ⚡' }
+                  ].map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => setAiPersona({ ...aiPersona, style: style.id })}
+                      className={`py-3 rounded text-xs font-bold uppercase transition-all border-2 ${aiPersona.style === style.id
+                        ? 'border-[#e60012] bg-[#e60012]/10 text-white'
+                        : 'border-[#2a2a2a] text-gray-500 hover:text-white hover:border-[#444]'
+                        }`}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Vibe */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Thông điệp muốn truyền tải</label>
+                <textarea
+                  placeholder="Kể cho AI nghe thêm về màu sắc riêng của bạn..."
+                  value={aiPersona.customVibe}
+                  onChange={(e) => setAiPersona({ ...aiPersona, customVibe: e.target.value })}
+                  className="input-street w-full !py-4 h-24 resize-none"
+                />
+              </div>
+
+              {/* Generation Button */}
+              <button
+                onClick={generateAIImage}
+                disabled={isGenerating}
+                className="btn-street w-full py-5 text-xl font-black italic tracking-tighter flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                    AI Đang phân tích cá tính...
+                  </>
+                ) : (
+                  <>
+                    Xác nhận tạo họa tiết riêng
+                    <Sparkles size={24} />
+                  </>
+                )}
+              </button>
+
+              {/* Safety Disclaimer */}
+              <div className="bg-[#1a0a0a] border border-[#ff4d4d]/20 p-4 rounded-lg flex gap-3">
+                <div className="shink-0 text-red-500 mt-0.5 font-bold">⚠️</div>
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  <span className="text-red-500 font-bold uppercase tracking-wider">Lưu ý quan trọng:</span> UNTYPED cam kết tự do sáng tạo, tuy nhiên chúng tôi <span className="text-white font-bold">nghiêm cấm tuyệt đối</span> các họa tiết liên quan đến <span className="text-white">phân biệt chủng tộc, tôn giáo, bạo lực hoặc nội dung nhạy cảm</span>. Các thiết kế vi phạm sẽ bị hủy đơn tự động.
+                </p>
+              </div>
+
+              {/* Gallery Results */}
+              {generatedImages.length > 0 && !isGenerating && (
+                <div className="pt-8 border-t border-[#2a2a2a] animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <h3 className="text-white font-black uppercase italic tracking-tighter text-xl mb-6">Họa tiết dành riêng cho bạn:</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {generatedImages.map((url, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => addAIElement(url)}
+                        className="group relative aspect-square bg-[#0a0a0a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
+                      >
+                        <img src={url} alt="AI Result" className="w-full h-full object-cover transition-transform group-hover:scale-110 opacity-70 group-hover:opacity-100" />
+                        <div className="absolute inset-0 bg-[#e60012]/20 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all">
+                          <Plus className="text-white mb-2" size={32} />
+                          <span className="text-white text-[10px] font-black uppercase italic">Chọn họa tiết</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

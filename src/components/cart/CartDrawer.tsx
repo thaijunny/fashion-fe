@@ -4,14 +4,28 @@ import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/api';
+import { formatPrice, getImageUrl } from '@/lib/api';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CartDrawer() {
   const { items, itemCount, total, isOpen, closeCart, removeItem, updateQuantity } = useCart();
+  const { user, openLoginModal } = useAuth();
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const router = useRouter();
+
+  const handleCheckout = () => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    closeCart();
+    router.push('/checkout');
+  };
 
   return (
     <>
@@ -70,7 +84,7 @@ export default function CartDrawer() {
                 <div className="relative w-20 h-24 flex-shrink-0 bg-[#0f0f0f] overflow-hidden">
                   {item.product?.images?.[0] ? (
                     <Image
-                      src={item.product.images[0]}
+                      src={getImageUrl(item.product.images[0])}
                       alt={item.product.name || ''}
                       fill
                       className="object-cover"
@@ -157,11 +171,19 @@ export default function CartDrawer() {
               <span className="text-white font-bold text-xl">{formatPrice(total)}</span>
             </div>
             <button
+              onClick={handleCheckout}
               className="w-full py-4 bg-[#e60012] text-white font-bold uppercase tracking-wider hover:bg-[#ff1a2e] transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingBag size={18} />
               Thanh Toán
             </button>
+            <Link
+              href="/cart"
+              onClick={closeCart}
+              className="w-full py-4 bg-transparent border border-[#2a2a2a] text-white font-bold uppercase tracking-wider hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2"
+            >
+              Xem Giỏ Hàng
+            </Link>
             <button
               onClick={closeCart}
               className="w-full text-center text-gray-400 hover:text-white text-sm transition-colors"

@@ -2,10 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ShoppingBag, Eye } from 'lucide-react';
+import { Heart, ShoppingBag, Eye, Check } from 'lucide-react';
 import { Product } from '@/types';
-import { formatPrice } from '@/lib/api';
+import { formatPrice, getImageUrl } from '@/lib/api';
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +16,31 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState(false);
+
+  const { user, openLoginModal } = useAuth();
+  const { addToCart } = useCart();
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    setAddingToCart(true);
+    // Use first size and color as default for quick-add
+    const defaultSize = product.sizes[0] || 'M';
+    const defaultColor = product.colors[0] || '#000000';
+
+    await addToCart(product.id, defaultSize, defaultColor, 1);
+    setAddingToCart(false);
+    setAddedSuccess(true);
+    setTimeout(() => setAddedSuccess(false), 2000);
+  };
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -38,12 +65,11 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         ) : (
           <Image
-            src={product.images[0]}
+            src={getImageUrl(product.images[0])}
             alt={product.name}
             fill
-            className={`object-cover transition-transform duration-500 ${
-              isHovered ? 'scale-110' : 'scale-100'
-            }`}
+            className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
+              }`}
             onError={() => setImageError(true)}
           />
         )}
@@ -63,9 +89,8 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Quick Actions */}
         <div
-          className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 ${
-            isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
-          }`}
+          className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+            }`}
         >
           <button
             className="w-10 h-10 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[#e60012] transition-colors"
@@ -84,13 +109,27 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Add to Cart Button */}
         <div
-          className={`absolute bottom-0 left-0 right-0 transition-all duration-300 ${
-            isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
-          }`}
+          className={`absolute bottom-0 left-0 right-0 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
+            }`}
         >
-          <button className="w-full py-3 bg-[#e60012] text-white font-medium uppercase tracking-wider text-sm flex items-center justify-center gap-2 hover:bg-[#ff1a2e] transition-colors">
-            <ShoppingBag size={16} />
-            Thêm vào giỏ
+          <button
+            onClick={handleAddToCart}
+            disabled={addingToCart}
+            className={`w-full py-3 ${addedSuccess ? 'bg-green-600' : 'bg-[#e60012] hover:bg-[#ff1a2e]'} text-white font-medium uppercase tracking-wider text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-70`}
+          >
+            {addingToCart ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : addedSuccess ? (
+              <>
+                <Check size={16} />
+                Đã thêm!
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={16} />
+                Thêm vào giỏ
+              </>
+            )}
           </button>
         </div>
       </div>

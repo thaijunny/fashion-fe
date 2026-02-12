@@ -16,10 +16,13 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  isLoginModalOpen: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, full_name: string) => Promise<void>;
   googleLogin: (credential: string) => Promise<void>;
   logout: () => void;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Restore session from localStorage
   useEffect(() => {
@@ -64,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
     setToken(data.token);
     localStorage.setItem('fashtion_token', data.token);
+    setIsLoginModalOpen(false); // Close modal on successful auth
   };
 
   const login = async (email: string, password: string) => {
@@ -105,12 +110,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('fashtion_token');
   };
 
+  const openLoginModal = () => setIsLoginModalOpen(true);
+  const closeLoginModal = () => setIsLoginModalOpen(false);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, googleLogin: googleLoginFn, logout }}>
+    <AuthContext.Provider value={{
+      user, token, loading, isLoginModalOpen,
+      login, register, googleLogin: googleLoginFn, logout,
+      openLoginModal, closeLoginModal
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
+
 
 export function useAuth() {
   const context = useContext(AuthContext);
