@@ -1,6 +1,19 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
+import {
+  fetchStudioColors,
+  fetchStudioAssets,
+  fetchGarmentTemplates,
+  fetchSizes,
+  fetchMaterials,
+  createProject,
+  updateProject,
+  getImageUrl
+} from '@/lib/api';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -40,181 +53,8 @@ import {
   Plus
 } from 'lucide-react';
 
-// Product templates with actual images (grouped by product type)
-const productTypes = [
-  {
-    id: 'tshirt',
-    name: 'Áo Thun',
-    icon: '👕',
-    width: 400,
-    height: 500,
-    // Size-specific real-world dimensions (cm)
-    sizes: {
-      S: { realWidth: 46, realHeight: 66, printArea: { width: 26, height: 34 } },
-      M: { realWidth: 48, realHeight: 68, printArea: { width: 28, height: 36 } },
-      L: { realWidth: 50, realHeight: 70, printArea: { width: 30, height: 38 } },
-      XL: { realWidth: 52, realHeight: 72, printArea: { width: 32, height: 40 } },
-      XXL: { realWidth: 56, realHeight: 74, printArea: { width: 34, height: 42 } },
-      XXXL: { realWidth: 60, realHeight: 76, printArea: { width: 36, height: 44 } },
-    },
-    variants: {
-      front: {
-        name: 'Mặt Trước',
-        image: '/images/tshirt-front.png',
-        designArea: { left: 25, top: 20, right: 25, bottom: 30 }
-      },
-      back: {
-        name: 'Mặt Sau',
-        image: '/images/tshirt-back.png',
-        designArea: { left: 25, top: 15, right: 25, bottom: 25 }
-      }
-    }
-  },
-  {
-    id: 'hoodie',
-    name: 'Hoodie',
-    icon: '🧥',
-    width: 450,
-    height: 550,
-    // Size-specific real-world dimensions (cm)
-    sizes: {
-      S: { realWidth: 50, realHeight: 68, printArea: { width: 28, height: 36 } },
-      M: { realWidth: 53, realHeight: 71, printArea: { width: 30, height: 38 } },
-      L: { realWidth: 56, realHeight: 74, printArea: { width: 32, height: 40 } },
-      XL: { realWidth: 59, realHeight: 77, printArea: { width: 34, height: 42 } },
-      XXL: { realWidth: 62, realHeight: 80, printArea: { width: 36, height: 44 } },
-      XXXL: { realWidth: 66, realHeight: 83, printArea: { width: 38, height: 46 } },
-    },
-    variants: {
-      front: {
-        name: 'Mặt Trước',
-        image: '/images/hoodie-front.png',
-        designArea: { left: 28, top: 25, right: 28, bottom: 35 }
-      },
-      back: {
-        name: 'Mặt Sau',
-        image: '/images/hoodie-back.png',
-        designArea: { left: 25, top: 18, right: 25, bottom: 28 }
-      }
-    }
-  },
-];
-
-// Available sizes
-const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'] as const;
-type SizeType = typeof sizeOptions[number];
-
-// Sample shapes
-const shapes = [
-  { id: 'rect', name: 'Hình vuông', icon: Square },
-  { id: 'circle', name: 'Hình tròn', icon: Circle },
-  { id: 'triangle', name: 'Tam giác', icon: Triangle },
-];
-
-// Sample colors
-const colorPalette = [
-  '#e60012', '#f0ff00', '#ffffff', '#000000',
-  '#1a1a1a', '#ff6b00', '#00ff88', '#0088ff',
-  '#ff00ff', '#8b00ff', '#00ffff', '#ffff00'
-];
-
-// Sample stickers/graphics
-const stickers = [
-  '🔥', '⚡', '💀', '🎸', '🎤', '🏀', '🎯', '💎',
-  '🦅', '🐉', '🌟', '💥', '🎨', '🎭', '🎪', '🎲'
-];
-
-// Fonts (Google Fonts with Vietnamese support)
-const fontOptions = [
-  { id: 'be-vietnam', name: 'Be Vietnam Pro', value: "'Be Vietnam Pro', sans-serif", style: 'Hiện đại' },
-  { id: 'roboto', name: 'Roboto', value: "'Roboto', sans-serif", style: 'Sạch sẽ' },
-  { id: 'montserrat', name: 'Montserrat', value: "'Montserrat', sans-serif", style: 'Đậm' },
-  { id: 'oswald', name: 'Oswald', value: "'Oswald', sans-serif", style: 'Condensed' },
-  { id: 'playfair', name: 'Playfair Display', value: "'Playfair Display', serif", style: 'Sang trọng' },
-  { id: 'dancing', name: 'Dancing Script', value: "'Dancing Script', cursive", style: 'Script' },
-  { id: 'permanent-marker', name: 'Permanent Marker', value: "'Permanent Marker', cursive", style: 'Graffiti' },
-  { id: 'bangers', name: 'Bangers', value: "'Bangers', cursive", style: 'Comic' },
-  { id: 'archivo-black', name: 'Archivo Black', value: "'Archivo Black', sans-serif", style: 'Heavy' },
-  { id: 'anton', name: 'Anton', value: "'Anton', sans-serif", style: 'Impact' },
-  { id: 'righteous', name: 'Righteous', value: "'Righteous', cursive", style: 'Retro' },
-  { id: 'russo-one', name: 'Russo One', value: "'Russo One', sans-serif", style: 'Tech' },
-];
-
-// Street-style text templates
-const textTemplates = [
-  {
-    id: 'street-1',
-    content: 'STREET VIBES',
-    fontSize: 36,
-    fontFamily: "'Anton', sans-serif",
-    fontWeight: '400',
-    color: '#ffffff',
-    preview: 'STREET VIBES'
-  },
-  {
-    id: 'street-2',
-    content: 'KHÔNG GIỚI HẠN',
-    fontSize: 32,
-    fontFamily: "'Be Vietnam Pro', sans-serif",
-    fontWeight: '900',
-    color: '#e60012',
-    preview: 'KHÔNG GIỚI HẠN'
-  },
-  {
-    id: 'street-3',
-    content: 'BORN TO BE WILD',
-    fontSize: 28,
-    fontFamily: "'Permanent Marker', cursive",
-    fontWeight: '400',
-    color: '#f0ff00',
-    preview: 'BORN TO BE WILD'
-  },
-  {
-    id: 'street-4',
-    content: 'URBAN STYLE',
-    fontSize: 40,
-    fontFamily: "'Oswald', sans-serif",
-    fontWeight: '700',
-    color: '#ffffff',
-    preview: 'URBAN STYLE'
-  },
-  {
-    id: 'street-5',
-    content: 'REBEL SOUL',
-    fontSize: 34,
-    fontFamily: "'Bangers', cursive",
-    fontWeight: '400',
-    color: '#00ff88',
-    preview: 'REBEL SOUL'
-  },
-  {
-    id: 'street-6',
-    content: 'PHÁ CÁCH',
-    fontSize: 38,
-    fontFamily: "'Archivo Black', sans-serif",
-    fontWeight: '400',
-    color: '#ff6b00',
-    preview: 'PHÁ CÁCH'
-  },
-  {
-    id: 'street-7',
-    content: 'NO RULES',
-    fontSize: 30,
-    fontFamily: "'Russo One', sans-serif",
-    fontWeight: '400',
-    color: '#0088ff',
-    preview: 'NO RULES'
-  },
-  {
-    id: 'street-8',
-    content: 'TỰ DO',
-    fontSize: 42,
-    fontFamily: "'Montserrat', sans-serif",
-    fontWeight: '900',
-    color: '#ff00ff',
-    preview: 'TỰ DO'
-  },
-];
+// Initial empty state
+const initialProductTypes: any[] = [];
 
 interface DesignElement {
   id: string;
@@ -264,11 +104,27 @@ const getRotatedCursor = (handle: string, rotation: number = 0): string => {
 };
 
 export default function StudioPage() {
-  const [selectedProduct, setSelectedProduct] = useState(productTypes[0]);
+  const { user, token, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
+  const router = useRouter();
+
+  const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [viewSide, setViewSide] = useState<'front' | 'back'>('front');
-  const [selectedSize, setSelectedSize] = useState<SizeType>('L');
+  const [selectedSize, setSelectedSize] = useState<string>('L');
+  const [sizeOptions, setSizeOptions] = useState<any[]>([]);
   const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
+  const [colorPalette, setColorPalette] = useState<string[]>([]);
+  const [stickers, setStickers] = useState<any[]>([]);
+  const [icons, setIcons] = useState<any[]>([]);
+  const [shapes, setShapes] = useState<any[]>([]);
+  const [fontOptions, setFontOptions] = useState<any[]>([]);
+  const [textTemplates, setTextTemplates] = useState<any[]>([]);
+
   const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery'>('templates');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiPersona, setAiPersona] = useState({
     personality: '',
@@ -277,6 +133,8 @@ export default function StudioPage() {
     style: 'hiphop',
     customVibe: ''
   });
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
 
@@ -301,18 +159,20 @@ export default function StudioPage() {
   const [isAutoRotating, setIsAutoRotating] = useState(true);
 
   // Get current view data
-  const currentView = selectedProduct.variants[viewSide];
+  const currentView = selectedProduct?.variants?.[viewSide];
 
   // Calculate pixel to cm ratio for real size display
   const getPixelToCm = useCallback(() => {
+    if (!currentView?.designArea || !selectedProduct) return 1;
     const designAreaWidthPercent = 100 - currentView.designArea.left - currentView.designArea.right;
     const designAreaWidthPx = selectedProduct.width * designAreaWidthPercent / 100;
-    const currentSizeData = selectedProduct.sizes[selectedSize];
-    return currentSizeData.printArea.width / designAreaWidthPx; // cm per pixel
-  }, [selectedProduct, currentView, selectedSize]);
+    const sizeData = sizeOptions.find((s: any) => s.name === selectedSize)?.measurements;
+    if (!sizeData?.printArea?.width || !designAreaWidthPx) return 1;
+    return sizeData.printArea.width / designAreaWidthPx; // cm per pixel
+  }, [selectedProduct, currentView, selectedSize, sizeOptions]);
 
-  const pixelToCm = getPixelToCm();
-  const currentSizeData = selectedProduct.sizes[selectedSize];
+  const pixelToCm = selectedProduct ? getPixelToCm() : 1;
+  const currentSizeData = sizeOptions.find((s: any) => s.name === selectedSize)?.measurements;
 
   // Handle product change - reset all elements
   const handleProductChange = (product: typeof productTypes[0]) => {
@@ -433,6 +293,65 @@ export default function StudioPage() {
 
     return () => clearInterval(interval);
   }, [showPreview, isAutoRotating]);
+
+  // Initial data loading
+  useEffect(() => {
+    if (authLoading) return;
+    if (!token) {
+      router.push('/login?redirect=/studio');
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        const [colors, dbStickers, dbIcons, dbShapes, dbFonts, templates, sizes] = await Promise.all([
+          fetchStudioColors(),
+          fetchStudioAssets('sticker'),
+          fetchStudioAssets('icon'),
+          fetchStudioAssets('shape'),
+          fetchStudioAssets('font'),
+          fetchGarmentTemplates(),
+          fetchSizes()
+        ]);
+
+        if (colors.length) setColorPalette(colors.map((c: any) => c.hex_code));
+        if (dbStickers.length) setStickers(dbStickers);
+        if (dbIcons.length) setIcons(dbIcons);
+        if (dbShapes.length) setShapes(dbShapes);
+        if (dbFonts.length) setFontOptions(dbFonts);
+        if (sizes.length) setSizeOptions(sizes);
+
+        // Map garment templates to studio format
+        if (templates.length) {
+          const designables = templates.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            icon: t.icon || '👕',
+            width: t.width || 400,
+            height: t.height || 500,
+            variants: {
+              front: {
+                name: 'Mặt Trước',
+                image: t.front_image,
+                designArea: t.front_design_area || { left: 25, top: 20, right: 25, bottom: 30 }
+              },
+              back: {
+                name: 'Mặt Sau',
+                image: t.back_image,
+                designArea: t.back_design_area || { left: 25, top: 15, right: 25, bottom: 25 }
+              }
+            }
+          }));
+          setProductTypes(designables);
+          setSelectedProduct(designables[0]);
+        }
+      } catch (error) {
+        console.error('Error loading studio data:', error);
+      }
+    };
+
+    loadData();
+  }, [authLoading, token, router]);
 
   // Zoom with mouse wheel
   React.useEffect(() => {
@@ -840,19 +759,28 @@ export default function StudioPage() {
   };
 
   const addAIElement = (url: string) => {
-    const newElement: DesignElement = {
-      id: `ai-${Date.now()}`,
-      type: 'image',
-      x: 100,
-      y: 150,
-      width: 150,
-      height: 150,
-      content: url,
-      opacity: 100,
+    // Create image to get natural dimensions
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // Scale down if too large, max 200px width
+      const maxWidth = 200;
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+      const newElement: DesignElement = {
+        id: `image-${Date.now()}`,
+        type: 'image',
+        x: 100,
+        y: 150,
+        width: img.width * scale,
+        height: img.height * scale,
+        content: url,
+        opacity: 100,
+      };
+      setElements([...elements, newElement]);
+      setSelectedElementIds([newElement.id]);
     };
-    setElements([...elements, newElement]);
-    setSelectedElementIds([newElement.id]);
-    setShowAIModal(false); // Close modal after selection
+    img.src = url;
+    setShowAIModal(false);
   };
 
   const deleteSelectedElement = () => {
@@ -887,6 +815,141 @@ export default function StudioPage() {
     }
   };
 
+  // ── GENERATE PREVIEW IMAGE ─────────────────────────────────────────
+  const generatePreview = (side: 'front' | 'back'): string | null => {
+    try {
+      const canvas = document.createElement('canvas');
+      const w = selectedProduct?.width || 400;
+      const h = selectedProduct?.height || 500;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      // Fill background with garment color
+      ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw elements
+      const elements = side === 'front' ? frontElements : backElements;
+      for (const el of elements) {
+        ctx.save();
+        ctx.globalAlpha = (el.opacity ?? 100) / 100;
+        if (el.rotation) {
+          ctx.translate(el.x + el.width / 2, el.y + el.height / 2);
+          ctx.rotate((el.rotation * Math.PI) / 180);
+          ctx.translate(-(el.x + el.width / 2), -(el.y + el.height / 2));
+        }
+        if (el.type === 'text') {
+          ctx.fillStyle = el.color || '#000000';
+          ctx.font = `${el.fontWeight || 'normal'} ${el.fontSize || 24}px ${el.fontFamily || 'Arial'}`;
+          ctx.textAlign = (el.textAlign as CanvasTextAlign) || 'left';
+          const textX = el.textAlign === 'center' ? el.x + el.width / 2 : el.textAlign === 'right' ? el.x + el.width : el.x;
+          ctx.fillText(el.content, textX, el.y + (el.fontSize || 24));
+        } else if (el.type === 'shape') {
+          ctx.fillStyle = el.color || '#000000';
+          if (el.content === 'circle') {
+            ctx.beginPath();
+            ctx.ellipse(el.x + el.width / 2, el.y + el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (el.content === 'triangle') {
+            ctx.beginPath();
+            ctx.moveTo(el.x + el.width / 2, el.y);
+            ctx.lineTo(el.x + el.width, el.y + el.height);
+            ctx.lineTo(el.x, el.y + el.height);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(el.x, el.y, el.width, el.height);
+          }
+        }
+        // Note: images/stickers would need async loading — we skip them for the preview thumbnail
+        ctx.restore();
+      }
+
+      return canvas.toDataURL('image/png', 0.7);
+    } catch {
+      return null;
+    }
+  };
+
+  // ── SAVE DESIGN ───────────────────────────────────────────────────
+  const handleSaveDesign = async () => {
+    if (!user || isSaving) return;
+    setIsSaving(true);
+    try {
+      const previewFront = generatePreview('front');
+      const previewBack = generatePreview('back');
+
+      const designData = {
+        name: designName,
+        garment_template_id: selectedProduct?.id || null,
+        garment_color: selectedProductColor,
+        garment_size: selectedSize,
+        design_data: {
+          front: frontElements,
+          back: backElements,
+          templateName: selectedProduct?.name,
+          viewSide,
+        },
+        preview_front: previewFront,
+        preview_back: previewBack,
+      };
+
+      if (projectId) {
+        await updateProject(projectId, designData, token!);
+      } else {
+        const saved = await createProject(designData, token!);
+        if (saved?.id) setProjectId(saved.id);
+      }
+      setHasUnsavedChanges(false);
+      showToast('Đã lưu thiết kế thành công!');
+    } catch (error) {
+      console.error('Error saving design:', error);
+      showToast('Không thể lưu thiết kế. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleExit = (path: string = '/') => {
+    if (hasUnsavedChanges) {
+      setPendingPath(path);
+      setShowExitWarning(true);
+    } else {
+      router.push(path);
+    }
+  };
+
+  // Detect changes for unsaved warning (deep compare)
+  useEffect(() => {
+    const isDifferent = (
+      JSON.stringify(frontElements) !== JSON.stringify(frontHistory[0]) ||
+      JSON.stringify(backElements) !== JSON.stringify(backHistory[0])
+    );
+    if (isDifferent) setHasUnsavedChanges(true);
+  }, [frontElements, backElements, frontHistory, backHistory]);
+
+  // ── EARLY RETURN GUARDS (must be AFTER all hooks) ──────────────────
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#e60012]/20 border-t-[#e60012] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  if (!selectedProduct) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-[#e60012]/20 border-t-[#e60012] rounded-full animate-spin" />
+        <p className="text-gray-400 text-sm">Đang tải dữ liệu studio...</p>
+      </div>
+    );
+  }
+
   const pasteElement = () => {
     if (multiClipboard.length > 0) {
       const newElements = multiClipboard.map(el => ({
@@ -908,9 +971,9 @@ export default function StudioPage() {
         id: selectedProduct.id,
         name: selectedProduct.name,
         size: selectedSize,
-        realWidth: currentSizeData.realWidth,
-        realHeight: currentSizeData.realHeight,
-        printArea: currentSizeData.printArea,
+        realWidth: currentSizeData?.realWidth,
+        realHeight: currentSizeData?.realHeight,
+        printArea: currentSizeData?.printArea,
       },
       front: {
         elements: frontElements.map(el => ({
@@ -993,7 +1056,7 @@ export default function StudioPage() {
       await new Promise((resolve, reject) => {
         productImg.onload = resolve;
         productImg.onerror = reject;
-        productImg.src = currentView.image;
+        productImg.src = getImageUrl(currentView.image);
       });
 
       ctx.save();
@@ -1165,9 +1228,12 @@ export default function StudioPage() {
       {/* Studio Header */}
       <header className="h-14 bg-[#1a1a1a] border-b border-[#2a2a2a] flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+          <button
+            onClick={() => handleExit('/')}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
             <ArrowLeft size={20} />
-          </Link>
+          </button>
           <div className="h-6 w-px bg-[#2a2a2a]" />
           <input
             type="text"
@@ -1262,9 +1328,13 @@ export default function StudioPage() {
             <Eye size={16} />
             Xem trước
           </button>
-          <button className="px-4 py-2 text-gray-300 hover:text-white transition-colors flex items-center gap-2">
-            <Save size={16} />
-            Lưu
+          <button
+            onClick={handleSaveDesign}
+            disabled={isSaving}
+            className={`px-4 py-2 text-gray-300 hover:text-white transition-colors flex items-center gap-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Save size={16} className={isSaving ? 'animate-pulse' : ''} />
+            {isSaving ? 'Đang lưu...' : 'Lưu'}
           </button>
           <button
             onClick={downloadDesign}
@@ -1273,7 +1343,7 @@ export default function StudioPage() {
             <Download size={16} />
             Tải xuống
           </button>
-                    <button
+          <button
             onClick={() => {
               setShowAIModal(true);
               setGeneratedImages([]);
@@ -1339,7 +1409,7 @@ export default function StudioPage() {
                         }`}
                     >
                       <img
-                        src={product.variants.front.image}
+                        src={getImageUrl(product.variants.front.image)}
                         alt={product.name}
                         className="w-full h-20 object-contain mb-2"
                       />
@@ -1351,21 +1421,21 @@ export default function StudioPage() {
                 {/* Size Selector */}
                 <h3 className="text-white font-bold mb-3">Chọn size</h3>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {sizeOptions.map((size) => (
+                  {sizeOptions.map((size: any) => (
                     <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${selectedSize === size
+                      key={size.id || size.name}
+                      onClick={() => setSelectedSize(size.name)}
+                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${selectedSize === size.name
                         ? 'bg-[#e60012] text-white'
                         : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                         }`}
                     >
-                      {size}
+                      {size.name}
                     </button>
                   ))}
                 </div>
                 <div className="mb-4 p-2 bg-[#1a1a1a] rounded text-xs text-gray-400">
-                  📐 Vùng in: <span className="text-white font-bold">{currentSizeData.printArea.width}×{currentSizeData.printArea.height} cm</span>
+                  📐 Vùng in: <span className="text-white font-bold">{currentSizeData?.printArea?.width ?? '—'}×{currentSizeData?.printArea?.height ?? '—'} cm</span>
                 </div>
 
                 {/* Garment Color Selector */}
@@ -1455,16 +1525,15 @@ export default function StudioPage() {
                   {fontOptions.map((font) => (
                     <button
                       key={font.id}
-                      onClick={() => addTextElement(font.value)}
+                      onClick={() => addTextElement(font.url || font)}
                       className="w-full p-2 bg-[#1a1a1a] text-left hover:bg-[#2a2a2a] transition-colors rounded flex justify-between items-center"
                     >
                       <span
                         className="text-white"
-                        style={{ fontFamily: font.value }}
+                        style={{ fontFamily: font.url || font }}
                       >
-                        {font.name}
+                        {font.name || font}
                       </span>
-                      <span className="text-xs text-gray-500">{font.style}</span>
                     </button>
                   ))}
                 </div>
@@ -1478,10 +1547,12 @@ export default function StudioPage() {
                   {shapes.map((shape) => (
                     <button
                       key={shape.id}
-                      onClick={() => addShapeElement(shape.id)}
+                      onClick={() => addShapeElement(shape.url || shape)}
                       className="aspect-square flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors rounded"
                     >
-                      <shape.icon size={28} className="text-gray-300" />
+                      {(shape.url || shape) === 'rect' && <Square size={28} className="text-gray-300" />}
+                      {(shape.url || shape) === 'circle' && <Circle size={28} className="text-gray-300" />}
+                      {(shape.url || shape) === 'triangle' && <Triangle size={28} className="text-gray-300" />}
                     </button>
                   ))}
                 </div>
@@ -1520,45 +1591,69 @@ export default function StudioPage() {
             {activeTab === 'ai-gallery' && (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white font-bold">Thư viện AI</h3>
+                  <h3 className="text-white font-bold">Thư viện AI & Uploads</h3>
                   <button
                     onClick={() => setShowAIModal(true)}
                     className="text-[10px] bg-[#e60012] text-white px-2 py-1 rounded font-bold uppercase italic"
                   >
-                    Tạo mới
+                    Tạo mới AI
                   </button>
                 </div>
 
-                {generatedImages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-[#1a1a1a] rounded-lg border border-dashed border-[#2a2a2a]">
-                    <Sparkles className="text-gray-600 mb-3" size={32} />
-                    <p className="text-gray-400 text-sm mb-4">Chưa có thiết kế AI nào được tạo</p>
-                    <button
-                      onClick={() => setShowAIModal(true)}
-                      className="btn-street text-xs py-2 w-full"
-                    >
-                      Sáng tạo ngay
-                    </button>
+                <div className="space-y-6">
+                  {/* AI Generated Section */}
+                  <div>
+                    <h4 className="text-gray-500 text-[10px] uppercase font-bold mb-3 tracking-widest">Thiết kế AI</h4>
+                    {(user?.ai_images?.length || 0) + generatedImages.length === 0 ? (
+                      <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
+                        <p className="text-gray-600 text-[10px] uppercase">Trống</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {[...(user?.ai_images || []), ...generatedImages].map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => addStickerElement(url)} // Reusing as image essentially
+                            className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
+                          >
+                            <img src={url} alt="AI" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                              <Plus className="text-white" size={16} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {generatedImages.map((url, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => addAIElement(url)}
-                        className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
-                      >
-                        <img src={url} alt="AI Generated" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <Plus className="text-white" size={20} />
-                        </div>
-                      </button>
-                    ))}
+
+                  {/* Personal Uploads Section */}
+                  <div>
+                    <h4 className="text-gray-500 text-[10px] uppercase font-bold mb-3 tracking-widest">Ảnh tải lên</h4>
+                    {!(user?.uploaded_images?.length) ? (
+                      <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
+                        <p className="text-gray-600 text-[10px] uppercase">Trống</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {user.uploaded_images.map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => addAIElement(url)}
+                            className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
+                          >
+                            <img src={url} alt="Upload" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                              <Plus className="text-white" size={16} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <div className="mt-6 p-3 bg-[#e60012]/5 border border-[#e60012]/20 rounded text-[10px] text-gray-400 italic leading-relaxed">
-                  Thiết kế AI của bạn chỉ được lưu trong phiên làm việc này. Hãy tải xuống hoặc đặt hàng để giữ lại chúng.
+                  Thư viện cá nhân giúp bạn lưu trữ các thiết kế yêu thích.
                 </div>
               </>
             )}
@@ -1567,15 +1662,19 @@ export default function StudioPage() {
               <>
                 <h3 className="text-white font-bold mb-4">Stickers & Icons</h3>
                 <div className="grid grid-cols-4 gap-2">
-                  {stickers.map((sticker, index) => (
-                    <button
-                      key={index}
-                      onClick={() => addStickerElement(sticker)}
-                      className="aspect-square flex items-center justify-center text-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors rounded"
-                    >
-                      {sticker}
-                    </button>
-                  ))}
+                  {stickers.map((sticker, index) => {
+                    const stickerVal = sticker.url || sticker;
+                    const isImage = typeof stickerVal === 'string' && (stickerVal.startsWith('/') || stickerVal.startsWith('http'));
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => addStickerElement(stickerVal)}
+                        className="aspect-square flex items-center justify-center text-2xl bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors rounded overflow-hidden"
+                      >
+                        {isImage ? <img src={getImageUrl(stickerVal)} alt={sticker.name || 'sticker'} className="w-full h-full object-contain p-1" /> : stickerVal}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -1599,7 +1698,7 @@ export default function StudioPage() {
           >
             {/* Product Template Background Image */}
             <img
-              src={currentView.image}
+              src={getImageUrl(currentView.image)}
               alt={`${selectedProduct.name} - ${currentView.name}`}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               style={{
@@ -1731,12 +1830,12 @@ export default function StudioPage() {
                   )}
                   {element.type === 'sticker' && (
                     <div className="w-full h-full flex items-center justify-center text-4xl pointer-events-none">
-                      {element.content}
+                      {(element.content.startsWith('/') || element.content.startsWith('http')) ? <img src={getImageUrl(element.content)} alt="sticker" className="w-full h-full object-contain" draggable={false} /> : element.content}
                     </div>
                   )}
                   {element.type === 'image' && (
                     <img
-                      src={element.content}
+                      src={getImageUrl(element.content)}
                       alt="Uploaded"
                       className="w-full h-full object-contain pointer-events-none"
                       draggable={false}
@@ -2150,10 +2249,10 @@ export default function StudioPage() {
                         {fontOptions.map((font) => (
                           <option
                             key={font.id}
-                            value={font.value}
-                            style={{ fontFamily: font.value }}
+                            value={font.url || font}
+                            style={{ fontFamily: font.url || font }}
                           >
-                            {font.name} - {font.style}
+                            {font.name || font}
                           </option>
                         ))}
                       </select>
@@ -2474,7 +2573,7 @@ export default function StudioPage() {
                     >
                       <div className="relative">
                         <img
-                          src={selectedProduct.variants.front.image}
+                          src={getImageUrl(selectedProduct.variants.front.image)}
                           alt="Front"
                           className="max-h-[450px] object-contain"
                           style={{
@@ -2537,12 +2636,12 @@ export default function StudioPage() {
                               )}
                               {element.type === 'sticker' && (
                                 <div className="w-full h-full flex items-center justify-center text-2xl">
-                                  {element.content}
+                                  {(element.content.startsWith('/') || element.content.startsWith('http')) ? <img src={getImageUrl(element.content)} alt="" className="w-full h-full object-contain" /> : element.content}
                                 </div>
                               )}
                               {element.type === 'image' && (
                                 <img
-                                  src={element.content}
+                                  src={getImageUrl(element.content)}
                                   alt="Uploaded"
                                   className="w-full h-full object-contain"
                                   draggable={false}
@@ -2567,7 +2666,7 @@ export default function StudioPage() {
                     >
                       <div className="relative">
                         <img
-                          src={selectedProduct.variants.back.image}
+                          src={getImageUrl(selectedProduct.variants.back.image)}
                           alt="Back"
                           className="max-h-[450px] object-contain"
                           style={{
@@ -2630,12 +2729,12 @@ export default function StudioPage() {
                               )}
                               {element.type === 'sticker' && (
                                 <div className="w-full h-full flex items-center justify-center text-2xl">
-                                  {element.content}
+                                  {(element.content.startsWith('/') || element.content.startsWith('http')) ? <img src={getImageUrl(element.content)} alt="" className="w-full h-full object-contain" /> : element.content}
                                 </div>
                               )}
                               {element.type === 'image' && (
                                 <img
-                                  src={element.content}
+                                  src={getImageUrl(element.content)}
                                   alt="Uploaded"
                                   className="w-full h-full object-contain"
                                   draggable={false}
@@ -2863,6 +2962,44 @@ export default function StudioPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Exit Warning Modal */}
+      {showExitWarning && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+          <div className="relative bg-[#111] border border-[#e60012]/30 p-8 max-w-md w-full rounded-2xl shadow-2xl text-center">
+            <div className="w-20 h-20 bg-[#e60012]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X className="text-[#e60012]" size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-white uppercase italic mb-4">Chưa lưu thiết kế!</h2>
+            <p className="text-gray-400 mb-8 leading-relaxed">
+              Bạn có thay đổi chưa được lưu. Nếu thoát bây giờ, quá trình sáng tạo của bạn sẽ bị mất.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleSaveDesign}
+                className="btn-street w-full py-4 text-sm"
+              >
+                LƯU VÀ THOÁT
+              </button>
+              <button
+                onClick={() => {
+                  setShowExitWarning(false);
+                  router.push(pendingPath || '/');
+                }}
+                className="w-full py-4 text-sm text-gray-500 hover:text-white transition-colors uppercase font-bold"
+              >
+                HỦY BỎ THAY ĐỔI
+              </button>
+              <button
+                onClick={() => setShowExitWarning(false)}
+                className="w-full py-4 text-sm text-gray-400 hover:text-white transition-colors uppercase font-bold"
+              >
+                TIẾP TỤC CHỈNH SỬA
+              </button>
             </div>
           </div>
         </div>

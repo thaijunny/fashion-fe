@@ -1,12 +1,32 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, Truck, Shield, RotateCcw } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
 import { fetchProducts, getFeaturedProducts } from '@/lib/api';
 import { categories } from '@/data/categories';
+import { Product } from '@/types';
+import { useState, useEffect } from 'react';
 
-export default async function HomePage() {
-  const allProducts = await fetchProducts();
+export default function HomePage() {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const data = await fetchProducts();
+        setAllProducts(data.items);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
   const featuredProducts = getFeaturedProducts(allProducts);
 
 
@@ -17,13 +37,14 @@ export default async function HomePage() {
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]">
           {/* Animated Grid */}
-          <div 
+          <div
             className="absolute inset-0 opacity-40"
-             style={{
+            style={{
               backgroundImage: "url('/images/background.png')",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',}}
+              backgroundRepeat: 'no-repeat',
+            }}
           />
           {/* Red Glow */}
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#e60012]/20 rounded-full blur-[150px]" />
@@ -32,7 +53,7 @@ export default async function HomePage() {
 
         {/* Content */}
         <div className="relative z-10 container-street text-center">
-          <h1 
+          <h1
             className="text-5xl md:text-7xl lg:text-9xl font-extrabold mb-6 glitch-text tracking-tight"
           >
             <span className="text-white">UNTYPED</span>
@@ -96,8 +117,8 @@ export default async function HomePage() {
               </h2>
               <p className="text-gray-400 mt-4">Khám phá bộ sưu tập đa dạng của chúng tôi</p>
             </div>
-            <Link 
-              href="/products" 
+            <Link
+              href="/products"
               className="hidden md:flex items-center gap-2 text-[#e60012] hover:text-[#ff1a2e] transition-colors font-medium"
             >
               Xem tất cả <ArrowRight size={18} />
@@ -120,10 +141,10 @@ export default async function HomePage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                
+
                 {/* Content */}
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="text-white font-bold text-lg group-hover:text-[#e60012] transition-colors">
@@ -150,8 +171,8 @@ export default async function HomePage() {
               </h2>
               <p className="text-gray-400 mt-4">Những thiết kế được yêu thích nhất</p>
             </div>
-            <Link 
-              href="/products" 
+            <Link
+              href="/products"
               className="hidden md:flex items-center gap-2 text-[#e60012] hover:text-[#ff1a2e] transition-colors font-medium"
             >
               Xem tất cả <ArrowRight size={18} />
@@ -189,13 +210,13 @@ export default async function HomePage() {
               <span className="text-[#f0ff00] font-medium uppercase tracking-wider mb-4 block">
                 Tính năng độc quyền
               </span>
-              <h2 
+              <h2
                 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight"
               >
                 DESIGN <span className="text-[#e60012]">STUDIO</span>
               </h2>
               <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                Tự tay thiết kế quần áo theo phong cách riêng của bạn với công cụ thiết kế 
+                Tự tay thiết kế quần áo theo phong cách riêng của bạn với công cụ thiết kế
                 chuyên nghiệp. Thêm hình ảnh, text, stickers và nhiều hơn nữa!
               </p>
               <ul className="space-y-3 mb-8">
@@ -238,7 +259,7 @@ export default async function HomePage() {
       {/* Newsletter Section */}
       <section className="py-16 bg-[#e60012]">
         <div className="container-street text-center">
-          <h2 
+          <h2
             className="text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tight"
           >
             NHẬN THÔNG TIN MỚI NHẤT

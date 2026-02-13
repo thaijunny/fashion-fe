@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Search, ShoppingBag, User, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, Search, ShoppingBag, User, LogOut, ChevronDown, Shield } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 
@@ -17,9 +18,20 @@ const navLinks = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
   const { itemCount } = useCart();
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+      setIsSearchOpen(false);
+      setSearchTerm('');
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#2a2a2a]">
@@ -123,6 +135,16 @@ export default function Header() {
                         )}
                       </div>
                       <div className="py-1">
+                        {user.role === 'admin' && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-[#f0ff00] hover:bg-[#2a2a2a] transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <Shield size={16} />
+                            Admin Panel
+                          </Link>
+                        )}
                         <Link
                           href="/account"
                           className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-[#2a2a2a] transition-colors"
@@ -130,6 +152,14 @@ export default function Header() {
                         >
                           <User size={16} />
                           Tài khoản
+                        </Link>
+                        <Link
+                          href="/orders"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-[#2a2a2a] transition-colors"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <ShoppingBag size={16} />
+                          Lịch sử đơn hàng
                         </Link>
                         <button
                           onClick={() => { logout(); setIsUserMenuOpen(false); }}
@@ -174,21 +204,35 @@ export default function Header() {
       {isSearchOpen && (
         <div className="absolute top-full left-0 right-0 bg-[#1a1a1a] border-b border-[#2a2a2a] p-4 slide-up">
           <div className="container-street">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm sản phẩm..."
-                className="input-street w-full pl-12 pr-4"
+                className="input-street w-full !pl-12 pr-12"
                 autoFocus
               />
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <button
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                onClick={() => setIsSearchOpen(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="text-gray-400 hover:text-white mr-1"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsSearchOpen(false)}
+                >
+                  <Search size={20} className="text-[#e60012]" />
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -49,10 +49,10 @@ export default function Footer() {
               />
             </Link>
             <p className="text-gray-400 mb-6 max-w-sm">
-              Thương hiệu thời trang đường phố dành cho những ai dám khác biệt. 
+              Thương hiệu thời trang đường phố dành cho những ai dám khác biệt.
               Không giới hạn, không khuôn mẫu - chỉ có phong cách của riêng bạn.
             </p>
-            
+
             {/* Contact Info */}
             <div className="space-y-3">
               <a href="tel:0901234567" className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">

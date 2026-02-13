@@ -104,10 +104,20 @@ export default function CartPage() {
                                                         />
                                                     </div>
                                                 )}
+                                                {item.material && (
+                                                    <p className="text-gray-400 capitalize">Chất liệu: <span className="text-white font-bold">{item.material}</span></p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="text-[#e60012] font-bold md:hidden">
-                                            {formatPrice(item.product?.price || 0)}
+                                            {(() => {
+                                                const activeVariant = item.product?.variants?.find((v: any) =>
+                                                    (!v.size || v.size === item.size) &&
+                                                    (!v.color || v.color === item.color) &&
+                                                    (!v.material || v.material === item.material)
+                                                );
+                                                return formatPrice(activeVariant?.price || item.product?.price || 0);
+                                            })()}
                                         </div>
                                     </div>
                                 </div>
@@ -137,7 +147,15 @@ export default function CartPage() {
                                 <div className="col-span-5 md:col-span-3 flex items-center justify-end">
                                     <div className="text-right">
                                         <p className="text-white font-black text-xl tracking-tighter italic">
-                                            {formatPrice((item.product?.price || 0) * item.quantity)}
+                                            {(() => {
+                                                const activeVariant = item.product?.variants?.find((v: any) =>
+                                                    (!v.size || v.size === item.size) &&
+                                                    (!v.color || v.color === item.color) &&
+                                                    (!v.material || v.material === item.material)
+                                                );
+                                                const price = activeVariant?.price || item.product?.price || 0;
+                                                return formatPrice(price * item.quantity);
+                                            })()}
                                         </p>
                                         <p className="text-gray-600 text-[10px] font-bold uppercase hidden md:block">
                                             Tạm tính

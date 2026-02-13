@@ -18,6 +18,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [selectedMaterial, setSelectedMaterial] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
@@ -32,15 +33,27 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       const p = await fetchProductById(id);
       setProduct(p);
       if (p) {
-        setSelectedSize(p.sizes[0] || '');
-        setSelectedColor(p.colors[0] || '');
+        setSelectedSize(p.sizes[0]?.name || '');
+        setSelectedColor(p.colors[0]?.hexCode || '');
+        setSelectedMaterial(p.materials?.[0]?.name || '');
         // Fetch related products from same category
-        const all = await fetchProducts(p.category);
-        setRelated(all.filter(r => r.id !== p.id).slice(0, 4));
+        const catSlug = p.category?.slug || '';
+        if (catSlug) {
+          const all = await fetchProducts({ category: catSlug });
+          setRelated(all.items.filter(r => r.id !== p.id).slice(0, 4));
+        }
       }
       setLoading(false);
     })();
   }, [params]);
+
+  // Calculate price from base + adjustments
+  const sizeAdj = product?.sizes.find(s => s.name === selectedSize)?.priceAdjustment || 0;
+  const colorAdj = product?.colors.find(c => c.hexCode === selectedColor)?.priceAdjustment || 0;
+  const matAdj = product?.materials.find(m => m.name === selectedMaterial)?.priceAdjustment || 0;
+  const currentPrice = (product?.price || 0) + sizeAdj + colorAdj + matAdj;
+  const currentImages = product?.images || [];
+  const mainImage = currentImages[selectedImage] || currentImages[0] || '';
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -49,7 +62,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
     if (!selectedSize || !selectedColor) return;
     setAddingToCart(true);
-    await addToCart(product!.id, selectedSize, selectedColor, quantity);
+    // @ts-ignore - material might not be in the current addToCart signature yet
+    await addToCart(product!.id, selectedSize, selectedColor, quantity, selectedMaterial);
     setAddingToCart(false);
     setAddedSuccess(true);
     setTimeout(() => setAddedSuccess(false), 2000);
@@ -83,13 +97,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const colorNames: Record<string, string> = {
-    '#000000': 'Đen', '#ffffff': 'Trắng', '#e60012': 'Đỏ',
-    '#0a0a0a': 'Đen đậm', '#1a1a1a': 'Xám đen', '#2a2a2a': 'Xám tối',
-    '#1a1a3a': 'Navy', '#f0ff00': 'Vàng neon', '#1a3a1a': 'Xanh rêu',
-    '#3a3a2a': 'Olive', '#C0C0C0': 'Bạc', '#FFD700': 'Vàng',
-  };
-
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Breadcrumb */}
@@ -111,7 +118,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {/* Main Image */}
             <div className="relative aspect-[3/4] bg-[#1a1a1a] overflow-hidden group">
               <Image
-                src={getImageUrl(product.images[selectedImage])}
+                src={getImageUrl(mainImage)}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -146,7 +153,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="space-y-6">
             {/* Category */}
             <p className="text-[#e60012] text-sm font-medium uppercase tracking-wider">
-              {product.category.replace(/-/g, ' ')}
+              {product.category?.name || ''}
             </p>
 
             {/* Name */}
@@ -157,7 +164,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {/* Price */}
             <div className="flex items-center gap-4">
               <span className="text-3xl font-bold text-[#e60012]">
-                {formatPrice(product.price)}
+                {formatPrice(currentPrice)}
               </span>
               {product.originalPrice && (
                 <>
@@ -186,14 +193,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map((size) => (
                   <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all ${selectedSize === size
+                    key={size.id}
+                    onClick={() => setSelectedSize(size.name)}
+                    className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all ${selectedSize === size.name
                       ? 'bg-[#e60012] border-[#e60012] text-white'
                       : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
                       }`}
                   >
-                    {size}
+                    {size.name}
+                    {size.priceAdjustment > 0 && <span className="text-[10px] ml-1">+{formatPrice(size.priceAdjustment)}</span>}
                   </button>
                 ))}
               </div>
@@ -202,27 +210,51 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {/* Color Selector */}
             <div>
               <h3 className="text-white font-medium mb-3 uppercase tracking-wider text-sm">
-                Màu sắc: <span className="text-[#e60012]">{colorNames[selectedColor] || selectedColor}</span>
+                Màu sắc: <span className="text-[#e60012]">{product.colors.find(c => c.hexCode === selectedColor)?.name || selectedColor}</span>
               </h3>
               <div className="flex flex-wrap gap-3">
                 {product.colors.map((color) => (
                   <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all relative ${selectedColor === color
+                    key={color.id}
+                    onClick={() => setSelectedColor(color.hexCode)}
+                    className={`w-10 h-10 rounded-full border-2 transition-all relative ${selectedColor === color.hexCode
                       ? 'border-[#e60012] scale-110 ring-2 ring-[#e60012]/30'
                       : 'border-[#2a2a2a] hover:border-white'
                       }`}
-                    style={{ backgroundColor: color }}
-                    title={colorNames[color] || color}
+                    style={{ backgroundColor: color.hexCode }}
+                    title={color.name}
                   >
-                    {selectedColor === color && (
+                    {selectedColor === color.hexCode && (
                       <Check size={16} className="absolute inset-0 m-auto text-white drop-shadow-lg" />
                     )}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Material Selector */}
+            {product.materials && product.materials.length > 0 && (
+              <div>
+                <h3 className="text-white font-medium mb-3 uppercase tracking-wider text-sm">
+                  Chất liệu: <span className="text-[#e60012]">{selectedMaterial}</span>
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.materials.map((material) => (
+                    <button
+                      key={material.id}
+                      onClick={() => setSelectedMaterial(material.name)}
+                      className={`min-w-[48px] h-11 px-4 border text-sm font-medium transition-all ${selectedMaterial === material.name
+                        ? 'bg-[#e60012] border-[#e60012] text-white'
+                        : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
+                        }`}
+                    >
+                      {material.name}
+                      {material.priceAdjustment > 0 && <span className="text-[10px] ml-1">+{formatPrice(material.priceAdjustment)}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Quantity */}
             <div>

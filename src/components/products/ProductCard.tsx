@@ -33,8 +33,8 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     setAddingToCart(true);
     // Use first size and color as default for quick-add
-    const defaultSize = product.sizes[0] || 'M';
-    const defaultColor = product.colors[0] || '#000000';
+    const defaultSize = product.sizes[0]?.name || 'M';
+    const defaultColor = product.colors[0]?.hexCode || '#000000';
 
     await addToCart(product.id, defaultSize, defaultColor, 1);
     setAddingToCart(false);
@@ -146,10 +146,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="flex gap-1 mb-3">
           {product.sizes.slice(0, 4).map((size) => (
             <span
-              key={size}
+              key={size.id}
               className="text-xs text-gray-500 px-2 py-0.5 border border-[#2a2a2a]"
             >
-              {size}
+              {size.name}
             </span>
           ))}
           {product.sizes.length > 4 && (
@@ -173,10 +173,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="flex gap-2 mt-3">
           {product.colors.map((color) => (
             <button
-              key={color}
+              key={color.id}
               className="w-5 h-5 rounded-full border-2 border-[#2a2a2a] hover:border-white transition-colors"
-              style={{ backgroundColor: color }}
-              aria-label={`Color: ${color}`}
+              style={{ backgroundColor: color.hexCode }}
+              aria-label={`Color: ${color.name}`}
             />
           ))}
         </div>

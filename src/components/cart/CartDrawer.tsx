@@ -105,17 +105,21 @@ export default function CartDrawer() {
                   >
                     {item.product?.name}
                   </Link>
-                  <div className="flex gap-3 mt-1">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                     {item.size && (
                       <span className="text-gray-500 text-xs">Size: {item.size}</span>
                     )}
                     {item.color && (
-                      <span className="flex items-center gap-1 text-gray-500 text-xs">
+                      <span className="flex items-center gap-1 text-gray-500 text-xs text-nowrap">
+                        Màu:
                         <span
                           className="w-3 h-3 rounded-full border border-[#3a3a3a] inline-block"
                           style={{ backgroundColor: item.color }}
                         />
                       </span>
+                    )}
+                    {item.material && (
+                      <span className="text-gray-500 text-xs text-nowrap">Vải: {item.material}</span>
                     )}
                   </div>
 
@@ -141,7 +145,15 @@ export default function CartDrawer() {
 
                     {/* Price */}
                     <span className="text-[#e60012] font-bold text-sm">
-                      {formatPrice((item.product?.price || 0) * item.quantity)}
+                      {(() => {
+                        const activeVariant = item.product?.variants?.find((v: any) =>
+                          (!v.size || v.size === item.size) &&
+                          (!v.color || v.color === item.color) &&
+                          (!v.material || v.material === item.material)
+                        );
+                        const price = activeVariant?.price || item.product?.price || 0;
+                        return formatPrice(price * item.quantity);
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -161,38 +173,40 @@ export default function CartDrawer() {
               </div>
             ))
           )}
-        </div>
+        </div >
 
         {/* Footer */}
-        {items.length > 0 && (
-          <div className="border-t border-[#2a2a2a] p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 uppercase tracking-wider text-sm">Tổng cộng</span>
-              <span className="text-white font-bold text-xl">{formatPrice(total)}</span>
+        {
+          items.length > 0 && (
+            <div className="border-t border-[#2a2a2a] p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 uppercase tracking-wider text-sm">Tổng cộng</span>
+                <span className="text-white font-bold text-xl">{formatPrice(total)}</span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                className="w-full py-4 bg-[#e60012] text-white font-bold uppercase tracking-wider hover:bg-[#ff1a2e] transition-colors flex items-center justify-center gap-2"
+              >
+                <ShoppingBag size={18} />
+                Thanh Toán
+              </button>
+              <Link
+                href="/cart"
+                onClick={closeCart}
+                className="w-full py-4 bg-transparent border border-[#2a2a2a] text-white font-bold uppercase tracking-wider hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2"
+              >
+                Xem Giỏ Hàng
+              </Link>
+              <button
+                onClick={closeCart}
+                className="w-full text-center text-gray-400 hover:text-white text-sm transition-colors"
+              >
+                ← Tiếp tục mua sắm
+              </button>
             </div>
-            <button
-              onClick={handleCheckout}
-              className="w-full py-4 bg-[#e60012] text-white font-bold uppercase tracking-wider hover:bg-[#ff1a2e] transition-colors flex items-center justify-center gap-2"
-            >
-              <ShoppingBag size={18} />
-              Thanh Toán
-            </button>
-            <Link
-              href="/cart"
-              onClick={closeCart}
-              className="w-full py-4 bg-transparent border border-[#2a2a2a] text-white font-bold uppercase tracking-wider hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2"
-            >
-              Xem Giỏ Hàng
-            </Link>
-            <button
-              onClick={closeCart}
-              className="w-full text-center text-gray-400 hover:text-white text-sm transition-colors"
-            >
-              ← Tiếp tục mua sắm
-            </button>
-          </div>
-        )}
-      </div>
+          )
+        }
+      </div >
     </>
   );
 }

@@ -66,7 +66,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await googleLogin(response.credential);
-      router.push('/');
+      // handleAuth in AuthContext handles redirect
     } catch (err: any) {
       setError(err.message || 'Google login failed');
     } finally {
@@ -90,7 +90,6 @@ export default function LoginPage() {
         }
         await register(email, password, fullName);
       }
-      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -133,21 +132,19 @@ export default function LoginPage() {
           <div className="flex mb-8 border border-[#2a2a2a] rounded-sm overflow-hidden">
             <button
               onClick={() => { setIsLogin(true); setError(''); }}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all ${
-                isLogin
-                  ? 'bg-[#e60012] text-white'
-                  : 'bg-transparent text-gray-400 hover:text-white'
-              }`}
+              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all ${isLogin
+                ? 'bg-[#e60012] text-white'
+                : 'bg-transparent text-gray-400 hover:text-white'
+                }`}
             >
               Đăng Nhập
             </button>
             <button
               onClick={() => { setIsLogin(false); setError(''); }}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all ${
-                !isLogin
-                  ? 'bg-[#e60012] text-white'
-                  : 'bg-transparent text-gray-400 hover:text-white'
-              }`}
+              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all ${!isLogin
+                ? 'bg-[#e60012] text-white'
+                : 'bg-transparent text-gray-400 hover:text-white'
+                }`}
             >
               Đăng Ký
             </button>
@@ -170,7 +167,7 @@ export default function LoginPage() {
                   placeholder="Họ và tên"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="input-street w-full pl-12"
+                  className="input-street w-full !pl-12"
                 />
               </div>
             )}
@@ -183,7 +180,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="input-street w-full pl-12"
+                className="input-street w-full !pl-12"
               />
             </div>
 
@@ -196,7 +193,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="input-street w-full pl-12 pr-12"
+                className="input-street w-full !pl-12 pr-12"
               />
               <button
                 type="button"

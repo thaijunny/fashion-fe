@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -10,6 +11,8 @@ interface User {
   full_name: string;
   role: string;
   avatar_url?: string;
+  uploaded_images?: string[];
+  ai_images?: string[];
 }
 
 interface AuthContextType {
@@ -64,11 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const router = useRouter();
+
   const handleAuth = (data: { user: User; token: string }) => {
     setUser(data.user);
     setToken(data.token);
     localStorage.setItem('fashtion_token', data.token);
     setIsLoginModalOpen(false); // Close modal on successful auth
+
+    if (data.user.role === 'admin') {
+      router.push('/admin');
+    } else {
+      router.push('/');
+    }
   };
 
   const login = async (email: string, password: string) => {

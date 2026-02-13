@@ -2,21 +2,13 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/products/ProductCard';
-import { fetchProducts } from '@/lib/api';
-import { categories } from '@/data/categories';
-import { Product } from '@/types';
+import { fetchProducts, fetchCategories, fetchSizes, fetchColors } from '@/lib/api';
+import { Category, Product, Size, Color } from '@/types';
 
 const ITEMS_PER_PAGE = 8;
 
-const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL'];
-const colorOptions = [
-  { value: '#000000', label: 'Đen' },
-  { value: '#ffffff', label: 'Trắng' },
-  { value: '#e60012', label: 'Đỏ' },
-  { value: '#1a1a3a', label: 'Navy' },
-  { value: '#f0ff00', label: 'Neon' },
-];
 const sortOptions = [
   { value: 'newest', label: 'Mới nhất' },
   { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
@@ -24,10 +16,17 @@ const sortOptions = [
   { value: 'popular', label: 'Phổ biến nhất' },
 ];
 
-export default function ProductsPage() {
+import { Suspense } from 'react';
+
+// Main content component that uses searchParams
+function ProductsContent() {
+  const searchParams = useSearchParams();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<Size[]>([]);
+  const [colorOptions, setColorOptions] = useState<Color[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
@@ -36,11 +35,22 @@ export default function ProductsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      setAllProducts(data);
+    const urlSearch = searchParams.get('search');
+    if (urlSearch) setSearchQuery(urlSearch);
+
+    Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchSizes(),
+      fetchColors()
+    ]).then(([productsData, categoriesData, sizesData, colorsData]) => {
+      setAllProducts(productsData.items);
+      setCategories(categoriesData);
+      setSizeOptions(sizesData);
+      setColorOptions(colorsData);
       setIsLoadingProducts(false);
     });
-  }, []);
+  }, [searchParams]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -58,20 +68,23 @@ export default function ProductsPage() {
 
     // Category filter
     if (selectedCategories.length > 0) {
-      result = result.filter((p) => selectedCategories.includes(p.category));
+      result = result.filter((p) => {
+        const catSlug = p.category?.slug || '';
+        return selectedCategories.includes(catSlug);
+      });
     }
 
     // Size filter
     if (selectedSizes.length > 0) {
       result = result.filter((p) =>
-        p.sizes.some((s) => selectedSizes.includes(s))
+        p.sizes.some((s) => selectedSizes.includes(s.name))
       );
     }
 
     // Color filter
     if (selectedColors.length > 0) {
       result = result.filter((p) =>
-        p.colors.some((c) => selectedColors.includes(c))
+        p.colors.some((c) => selectedColors.includes(c.hexCode))
       );
     }
 
@@ -143,7 +156,7 @@ export default function ProductsPage() {
       <div className="container-street">
         {/* Header */}
         <div className="mb-8">
-          <h1 
+          <h1
             className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight"
           >
             TẤT CẢ SẢN PHẨM
@@ -165,7 +178,7 @@ export default function ProductsPage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm kiếm sản phẩm..."
-              className="input-street w-full pl-12"
+              className="input-street w-full !pl-12"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             {searchQuery && (
@@ -207,9 +220,8 @@ export default function ProductsPage() {
         <div className="flex gap-8">
           {/* Filter Sidebar */}
           <aside
-            className={`${
-              isFilterOpen ? 'fixed inset-0 z-50 bg-[#0a0a0a] p-6 overflow-auto' : 'hidden'
-            } md:block md:relative md:w-64 md:flex-shrink-0`}
+            className={`${isFilterOpen ? 'fixed inset-0 z-50 bg-[#0a0a0a] p-6 overflow-auto' : 'hidden'
+              } md:block md:relative md:w-64 md:flex-shrink-0`}
           >
             {/* Mobile Close Button */}
             <div className="flex justify-between items-center mb-6 md:hidden">
@@ -233,23 +245,26 @@ export default function ProductsPage() {
             <div className="mb-8">
               <h3 className="text-white font-bold mb-4 uppercase tracking-wider">Danh mục</h3>
               <div className="space-y-2">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center gap-3 cursor-pointer group"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(category.slug)}
-                      onChange={() => handleCategoryToggle(category.slug)}
-                      className="w-5 h-5 bg-[#1a1a1a] border border-[#2a2a2a] checked:bg-[#e60012] checked:border-[#e60012] cursor-pointer"
-                    />
-                    <span className="text-gray-400 group-hover:text-white transition-colors">
-                      {category.name}
-                    </span>
-                    <span className="text-gray-600 text-sm ml-auto">({category.productCount})</span>
-                  </label>
-                ))}
+                {categories.map((category) => {
+                  const productCount = allProducts.filter(p => p.category?.slug === category.slug).length;
+                  return (
+                    <label
+                      key={category.id}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(category.slug)}
+                        onChange={() => handleCategoryToggle(category.slug)}
+                        className="w-5 h-5 bg-[#1a1a1a] border border-[#2a2a2a] checked:bg-[#e60012] checked:border-[#e60012] cursor-pointer"
+                      />
+                      <span className="text-gray-400 group-hover:text-white transition-colors">
+                        {category.name}
+                      </span>
+                      <span className="text-gray-600 text-sm ml-auto">({productCount})</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
@@ -259,15 +274,14 @@ export default function ProductsPage() {
               <div className="flex flex-wrap gap-2">
                 {sizeOptions.map((size) => (
                   <button
-                    key={size}
-                    onClick={() => handleSizeToggle(size)}
-                    className={`w-12 h-10 border text-sm font-medium transition-colors ${
-                      selectedSizes.includes(size)
-                        ? 'bg-[#e60012] border-[#e60012] text-white'
-                        : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
-                    }`}
+                    key={size.id}
+                    onClick={() => handleSizeToggle(size.name)}
+                    className={`w-12 h-10 border text-sm font-medium transition-colors ${selectedSizes.includes(size.name)
+                      ? 'bg-[#e60012] border-[#e60012] text-white'
+                      : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
+                      }`}
                   >
-                    {size}
+                    {size.name}
                   </button>
                 ))}
               </div>
@@ -279,15 +293,14 @@ export default function ProductsPage() {
               <div className="flex flex-wrap gap-3">
                 {colorOptions.map((color) => (
                   <button
-                    key={color.value}
-                    onClick={() => handleColorToggle(color.value)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      selectedColors.includes(color.value)
-                        ? 'border-[#e60012] scale-110'
-                        : 'border-[#2a2a2a] hover:border-white'
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    title={color.label}
+                    key={color.id}
+                    onClick={() => handleColorToggle(color.hex_code)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColors.includes(color.hex_code)
+                      ? 'border-[#e60012] scale-110'
+                      : 'border-[#2a2a2a] hover:border-white'
+                      }`}
+                    style={{ backgroundColor: color.hex_code }}
+                    title={color.name}
                   />
                 ))}
               </div>
@@ -327,11 +340,10 @@ export default function ProductsPage() {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 flex items-center justify-center border text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? 'bg-[#e60012] border-[#e60012] text-white'
-                            : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
-                        }`}
+                        className={`w-10 h-10 flex items-center justify-center border text-sm font-medium transition-colors ${currentPage === page
+                          ? 'bg-[#e60012] border-[#e60012] text-white'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
+                          }`}
                       >
                         {page}
                       </button>
@@ -363,5 +375,17 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">
+        Đang tải sản phẩm...
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

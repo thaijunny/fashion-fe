@@ -7,6 +7,7 @@ interface CartProduct {
   id: string;
   name: string;
   price: number;
+  variants: any[];
   originalPrice?: number;
   images: string[];
   category: string;
@@ -17,6 +18,7 @@ export interface CartItemType {
   quantity: number;
   size: string;
   color: string;
+  material?: string;
   product: CartProduct | null;
   project_id?: string;
 }
@@ -29,9 +31,10 @@ interface CartContextType {
   loading: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (productId: string, size: string, color: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, size: string, color: string, quantity?: number, material?: string) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -79,14 +82,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
-  const addToCart = async (productId: string, size: string, color: string, quantity = 1) => {
+  const addToCart = async (productId: string, size: string, color: string, quantity = 1, material?: string) => {
     if (!token) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/cart/add`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ product_id: productId, size, color, quantity }),
+        body: JSON.stringify({ product_id: productId, size, color, material, quantity }),
       });
       if (res.ok) {
         await fetchCart();
@@ -123,8 +126,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearCart = () => {
+    setItems([]);
+    setItemCount(0);
+    setTotal(0);
+  };
+
   return (
-    <CartContext.Provider value={{ items, itemCount, total, isOpen, loading, openCart, closeCart, addToCart, removeItem, updateQuantity }}>
+    <CartContext.Provider value={{ items, itemCount, total, isOpen, loading, openCart, closeCart, addToCart, removeItem, updateQuantity, clearCart }}>
       {children}
     </CartContext.Provider>
   );
