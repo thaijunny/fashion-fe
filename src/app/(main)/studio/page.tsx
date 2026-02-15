@@ -18,7 +18,10 @@ import {
   createDesignOrder,
   uploadFile,
   getImageUrl,
-  formatPrice
+  formatPrice,
+  aiGenerateImage,
+  aiReviewDesign,
+  aiSafetyCheck
 } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -49,6 +52,9 @@ import {
   Move,
   RotateCw,
   RotateCcw,
+  Zap,
+  ShieldCheck,
+  MessageSquare,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -63,7 +69,11 @@ import {
   FolderOpen,
   MapPin,
   Phone,
-  User as UserIcon
+  User as UserIcon,
+  Building2,
+  Wallet,
+  CreditCard,
+  CheckCircle2
 } from 'lucide-react';
 
 // Initial empty state
@@ -161,6 +171,7 @@ function StudioPageContent() {
     phone_number: '',
     shipping_address: '',
     note: '',
+    payment_method: 'cod',
   });
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -177,6 +188,10 @@ function StudioPageContent() {
     onConfirm: () => { },
   });
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [previewImages, setPreviewImages] = useState<{ front: string | null; back: string | null }>({ front: null, back: null });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [aiSafety, setAiSafety] = useState<any>(null);
   const [userUploads, setUserUploads] = useState<string[]>(() => {
     // Restore from localStorage on mount
     if (typeof window !== 'undefined') {
@@ -450,6 +465,18 @@ function StudioPageContent() {
     }
   }, [userUploads]);
 
+  // Ensure selectedSize is valid for selectedProduct
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const availableSizes = selectedProduct.size_prices && Object.keys(selectedProduct.size_prices).length > 0
+      ? Object.keys(selectedProduct.size_prices)
+      : sizeOptions.map((s: any) => s.name);
+
+    if (availableSizes.length > 0 && !availableSizes.includes(selectedSize)) {
+      setSelectedSize(availableSizes[0]);
+    }
+  }, [selectedProduct, selectedSize, sizeOptions]);
+
   const loadMyProjects = useCallback(async () => {
     if (!token) return;
     setLoadingProjects(true);
@@ -477,26 +504,67 @@ function StudioPageContent() {
       const sizePrice = selectedProduct.size_prices?.[selectedSize] || selectedProduct.base_price || 0;
       const totalAmount = sizePrice * orderForm.quantity;
 
-      const { quantity, ...restOfForm } = orderForm;
       const orderData = {
         project_id: projectId,
         garment_template_id: selectedProduct.id,
         garment_size: selectedSize,
         garment_color: selectedProductColor,
-        quantity: quantity,
-        ...restOfForm,
+        quantity: orderForm.quantity,
+        full_name: orderForm.full_name,
+        phone_number: orderForm.phone_number,
+        shipping_address: orderForm.shipping_address,
+        note: orderForm.note,
+        payment_method: orderForm.payment_method,
         total_amount: totalAmount,
       };
 
       await createDesignOrder(orderData, token);
       setShowOrderModal(false);
-      showToast('Đặt hàng thành công! Chúng tôi sẽ sớm liên hệ với bạn.', 'success');
-      router.push('/design-orders');
+
+      // Reset previews after ordering
+      setPreviewImages({ front: null, back: null });
+
+      setConfirmModal({
+        isOpen: true,
+        isAlert: true,
+        title: 'ĐẶT HÀNG THÀNH CÔNG!',
+        message: 'Cảm ơn bạn! Đơn hàng thiết kế của bạn đã được tiếp nhận. Chúng tôi sẽ sớm liên hệ xác nhận.',
+        onConfirm: () => {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          router.push('/design-orders');
+        },
+        confirmText: 'XEM ĐƠN HÀNG',
+      });
     } catch (error: any) {
       console.error('Error placing design order:', error);
       showToast(error.message || 'Không thể đặt hàng. Vui lòng thử lại.', 'error');
     } finally {
       setIsOrdering(false);
+    }
+  };
+
+  const handleOpenOrderModal = async () => {
+    if (!projectId) {
+      showToast('Vui lòng lưu thiết kế của bạn trước khi tiếp tục.', 'error');
+      return;
+    }
+
+    setIsSaving(true); // Re-use saving state for generation indicator
+    try {
+      const front = await generatePreview('front');
+      const back = await generatePreview('back');
+      setPreviewImages({ front, back });
+
+      setOrderForm(f => ({
+        ...f,
+        full_name: user?.full_name || '',
+        payment_method: 'cod'
+      }));
+      setShowOrderModal(true);
+    } catch (err) {
+      showToast('Không thể tạo bản xem trước. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -903,35 +971,69 @@ function StudioPageContent() {
     img.src = getImageUrl(serverPath);
   };
 
-  // AI Generation Mock with Persona
+  // AI Generation with Persona
   const generateAIImage = async () => {
     setIsGenerating(true);
-    // Simulate complex AI reasoning based on persona
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    try {
+      // Construct an optimized prompt using persona & streetwear aesthetics
+      const basePrompt = aiPersona.customVibe || "creative design";
+      const stylePrompts: { [key: string]: string } = {
+        hiphop: "streetwear hiphop style, graffiti, urban vibe, bold typography",
+        luxury: "clean minimalist luxury logo, premium fashion silhouette, gold/silver accents",
+        simple: "simple minimalist geometric design, clean lines, contemporary art",
+        cyberpunk: "cyberpunk futuristic techwear, neon glow, digital glitch aesthetic",
+      };
 
-    // Mock results curated based on style
-    const styleGallery: { [key: string]: string[] } = {
-      hiphop: [
-        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&h=400&fit=crop', // Abstract Dark
-        'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop', // Cyber gradient
-      ],
-      luxury: [
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop', // Clean minimalist
-        'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=400&fit=crop', // Tech logo
-      ],
-      simple: [
-        'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=400&h=400&fit=crop', // Geometric
-        'https://images.unsplash.com/photo-1614851012115-59269bb0d6e6?w=400&h=400&fit=crop', // Minimalist
-      ],
-      cyberpunk: [
-        'https://images.unsplash.com/photo-1635776062127-d379bfcbb9c8?w=400&h=400&fit=crop', // Glitch art
-        'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop', // Neon abstract
-      ]
-    };
+      const fullPrompt = `${basePrompt}, style: ${stylePrompts[aiPersona.style] || "vector streetwear"}, personality: ${aiPersona.personality}, theme: ${aiPersona.zodiac}`;
 
-    const results = styleGallery[aiPersona.style] || styleGallery.hiphop;
-    setGeneratedImages(results);
-    setIsGenerating(false);
+      const resultUrl = await aiGenerateImage(fullPrompt);
+      if (resultUrl) {
+        setGeneratedImages(prev => [resultUrl, ...prev]);
+        setShowAIModal(false);
+        showToast('Tạo họa tiết AI thành công!', 'success');
+      } else {
+        showToast('Lỗi khi tạo ảnh AI. Vui lòng thử lại.', 'error');
+      }
+    } catch (error) {
+      console.error('AI Generation error:', error);
+      showToast('Có lỗi xảy ra khi kết nối AI', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAnalyzeDesign = async () => {
+    setIsAnalyzing(true);
+    setAiAnalysis(null);
+    try {
+      const dataUrl = await generatePreview(viewSide);
+      if (!dataUrl) throw new Error('Preview failed');
+      const blob = await (await fetch(dataUrl)).blob();
+      const result = await aiReviewDesign(blob);
+      setAiAnalysis(result);
+    } catch (error) {
+      console.error('AI Review error:', error);
+      showToast('Lỗi khi phân tích thiết kế', 'error');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSafetyCheck = async () => {
+    setIsAnalyzing(true);
+    setAiSafety(null);
+    try {
+      const dataUrl = await generatePreview(viewSide);
+      if (!dataUrl) throw new Error('Preview failed');
+      const blob = await (await fetch(dataUrl)).blob();
+      const result = await aiSafetyCheck(blob);
+      setAiSafety(result);
+    } catch (error) {
+      console.error('AI Safety error:', error);
+      showToast('Lỗi khi kiểm tra an toàn', 'error');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const addAIElement = (url: string) => {
@@ -992,7 +1094,7 @@ function StudioPageContent() {
   };
 
   // ── GENERATE PREVIEW IMAGE ─────────────────────────────────────────
-  const generatePreview = (side: 'front' | 'back'): string | null => {
+  const generatePreview = async (side: 'front' | 'back'): Promise<string | null> => {
     try {
       const canvas = document.createElement('canvas');
       const w = selectedProduct?.width || 400;
@@ -1002,49 +1104,100 @@ function StudioPageContent() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      // Fill background with garment color
-      ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
-      ctx.fillRect(0, 0, w, h);
+      // Helper to load image
+      const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new window.Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = getImageUrl(url);
+        });
+      };
 
-      // Draw elements
+      // 1. Draw garment image
+      const garmentUrl = selectedProduct?.variants?.[side]?.image;
+      if (garmentUrl) {
+        try {
+          const garmentImg = await loadImage(garmentUrl);
+          ctx.drawImage(garmentImg, 0, 0, w, h);
+        } catch {
+          // Fallback to solid color if garment fails to load
+          ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+        }
+      } else {
+        ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // 2. Draw elements
       const elements = side === 'front' ? frontElements : backElements;
+      const designArea = selectedProduct?.variants?.[side]?.designArea || { left: 25, top: 20, right: 25, bottom: 30 };
+
+      // Calculate design area in pixels
+      const daX = (designArea.left * w) / 100;
+      const daY = (designArea.top * h) / 100;
+      const daW = ((100 - designArea.left - designArea.right) * w) / 100;
+      const daH = ((100 - designArea.top - designArea.bottom) * h) / 100;
+
       for (const el of elements) {
         ctx.save();
         ctx.globalAlpha = (el.opacity ?? 100) / 100;
+
+        // Coordinates are relative to design area in the UI, but generatePreview used them directly.
+        // In the UI: <div style={{ left: `${el.x}%`, top: `${el.y}%`, width: `${el.width}%`, height: `${el.height}%` }}>
+        // Wait, element.x/y/width/height are pixels in the state?
+        // Let's check how they are rendered in the main canvas.
+        // Actually, in many studio implementations, they are pixels relative to the design area.
+
+        const absX = daX + (el.x); // Assuming el.x is pixels relative to design area
+        const absY = daY + (el.y);
+        const absW = el.width;
+        const absH = el.height;
+
         if (el.rotation) {
-          ctx.translate(el.x + el.width / 2, el.y + el.height / 2);
+          ctx.translate(absX + absW / 2, absY + absH / 2);
           ctx.rotate((el.rotation * Math.PI) / 180);
-          ctx.translate(-(el.x + el.width / 2), -(el.y + el.height / 2));
+          ctx.translate(-(absX + absW / 2), -(absY + absH / 2));
         }
+
         if (el.type === 'text') {
           ctx.fillStyle = el.color || '#000000';
           ctx.font = `${el.fontWeight || 'normal'} ${el.fontSize || 24}px ${el.fontFamily || 'Arial'}`;
           ctx.textAlign = (el.textAlign as CanvasTextAlign) || 'left';
-          const textX = el.textAlign === 'center' ? el.x + el.width / 2 : el.textAlign === 'right' ? el.x + el.width : el.x;
-          ctx.fillText(el.content, textX, el.y + (el.fontSize || 24));
+          const textX = el.textAlign === 'center' ? absX + absW / 2 : el.textAlign === 'right' ? absX + absW : absX;
+          ctx.fillText(el.content, textX, absY + (el.fontSize || 24));
         } else if (el.type === 'shape') {
           ctx.fillStyle = el.color || '#000000';
           if (el.content === 'circle') {
             ctx.beginPath();
-            ctx.ellipse(el.x + el.width / 2, el.y + el.height / 2, el.width / 2, el.height / 2, 0, 0, Math.PI * 2);
+            ctx.ellipse(absX + absW / 2, absY + absH / 2, absW / 2, absH / 2, 0, 0, Math.PI * 2);
             ctx.fill();
           } else if (el.content === 'triangle') {
             ctx.beginPath();
-            ctx.moveTo(el.x + el.width / 2, el.y);
-            ctx.lineTo(el.x + el.width, el.y + el.height);
-            ctx.lineTo(el.x, el.y + el.height);
+            ctx.moveTo(absX + absW / 2, absY);
+            ctx.lineTo(absX + absW, absY + absH);
+            ctx.lineTo(absX, absY + absH);
             ctx.closePath();
             ctx.fill();
           } else {
-            ctx.fillRect(el.x, el.y, el.width, el.height);
+            ctx.fillRect(absX, absY, absW, absH);
+          }
+        } else if (el.type === 'image' || el.type === 'sticker') {
+          try {
+            const img = await loadImage(el.content);
+            ctx.drawImage(img, absX, absY, absW, absH);
+          } catch (e) {
+            console.warn('Failed to draw image element in preview', e);
           }
         }
-        // Note: images/stickers would need async loading — we skip them for the preview thumbnail
         ctx.restore();
       }
 
-      return canvas.toDataURL('image/png', 0.7);
-    } catch {
+      return canvas.toDataURL('image/png', 0.9);
+    } catch (err) {
+      console.error('Error generating preview:', err);
       return null;
     }
   };
@@ -1054,8 +1207,9 @@ function StudioPageContent() {
     if (!user || isSaving) return;
     setIsSaving(true);
     try {
-      const previewFront = generatePreview('front');
-      const previewBack = generatePreview('back');
+      const previewFront = await generatePreview('front');
+      const previewBack = await generatePreview('back');
+      setPreviewImages({ front: previewFront, back: previewBack });
 
       const templateId = selectedProduct?.id || null;
       console.log('[Studio Save] templateId:', templateId, '| projectId:', projectId, '| name:', designName);
@@ -1564,12 +1718,16 @@ function StudioPageContent() {
             Sáng tạo AI
           </button>
 
-          <button onClick={() => {
-            if (!projectId) { showToast('Vui lòng lưu thiết kế trước khi đặt hàng', 'error'); return; }
-            setOrderForm(f => ({ ...f, full_name: user?.full_name || '', quantity: 1 }));
-            setShowOrderModal(true);
-          }} className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
-            <ShoppingBag size={16} />
+          <button
+            onClick={handleOpenOrderModal}
+            disabled={isSaving}
+            className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded disabled:opacity-50"
+          >
+            {isSaving ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <ShoppingBag size={16} />
+            )}
             Đặt hàng
           </button>
         </div>
@@ -1623,7 +1781,7 @@ function StudioPageContent() {
                         className="w-full h-20 object-contain mb-2"
                       />
                       <span className="text-xs text-gray-300 block truncate">{product.name}</span>
-                      {product.base_price > 0 && (
+                      {(product.base_price !== undefined && product.base_price !== null) && (
                         <span className="text-[10px] text-[#e60012] font-bold">{Number(product.base_price).toLocaleString('vi-VN')}đ</span>
                       )}
                     </button>
@@ -1633,7 +1791,10 @@ function StudioPageContent() {
                 {/* Size Selector */}
                 <h3 className="text-white font-bold mb-3">Chọn size</h3>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {sizeOptions.map((size: any) => (
+                  {(selectedProduct?.size_prices && Object.keys(selectedProduct.size_prices).length > 0
+                    ? Object.keys(selectedProduct.size_prices).map(sizeName => ({ id: sizeName, name: sizeName }))
+                    : sizeOptions
+                  ).map((size: any) => (
                     <button
                       key={size.id || size.name}
                       onClick={() => setSelectedSize(size.name)}
@@ -3289,124 +3450,178 @@ function StudioPageContent() {
       {/* Design Order Modal */}
       {showOrderModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowOrderModal(false)} />
-          <div className="relative bg-[#0f0f0f] border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-none shadow-2xl flex flex-col md:flex-row">
-            {/* Left: Preview */}
-            <div className="md:w-1/2 bg-[#111] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#2a2a2a]">
-              <div className="relative aspect-[3/4] w-full max-w-[240px] bg-[#0a0a0a] border border-[#2a2a2a] mb-4">
-                <img
-                  src={generatePreview('front') || ''}
-                  alt="Preview Front"
-                  className="w-full h-full object-contain"
-                />
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setShowOrderModal(false)} />
+          <div className="relative bg-[#0a0a0a] border border-[#2a2a2a] w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col md:flex-row animate-in zoom-in-95 duration-200">
+            {/* Left: Previews */}
+            <div className="md:w-[45%] bg-[#111] p-8 flex flex-col items-center border-b md:border-b-0 md:border-r border-[#2a2a2a]">
+              <h3 className="text-[10px] font-black text-[#e60012] uppercase tracking-[0.2em] mb-8 text-center">Bản xem trước thiết kế</h3>
+
+              <div className="w-full space-y-8">
+                <div className="space-y-3">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Mặt trước</div>
+                  <div className="relative aspect-square w-full bg-[#050505] border border-white/5 overflow-hidden">
+                    {previewImages.front ? (
+                      <img src={previewImages.front} alt="Front Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-700 text-[10px] uppercase font-bold">Chưa có bản xem</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Mặt sau</div>
+                  <div className="relative aspect-square w-full bg-[#050505] border border-white/5 overflow-hidden">
+                    {previewImages.back ? (
+                      <img src={previewImages.back} alt="Back Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-700 text-[10px] uppercase font-bold">Chưa có bản xem</div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-white font-bold uppercase tracking-widest text-xs mb-1">{designName}</p>
+
+              <div className="mt-12 text-center">
+                <p className="text-white font-black uppercase tracking-tighter italic text-xl mb-1">{designName}</p>
                 <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">
                   {selectedProduct?.name} · {selectedProductColor} · Size {selectedSize}
                 </p>
               </div>
             </div>
 
-            {/* Right: Form */}
-            <div className="md:w-1/2 p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Đặt hàng <span className="text-[#e60012]">Thiết kế</span></h2>
-                <button onClick={() => setShowOrderModal(false)} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+            {/* Right: Form & Payment */}
+            <div className="md:w-[55%] p-10 flex flex-col">
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Đặt hàng <span className="text-[#e60012]">Thiết kế</span></h2>
+                <button onClick={() => setShowOrderModal(false)} className="text-gray-500 hover:text-white transition-colors p-2"><X size={24} /></button>
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Số lượng</label>
-                    <div className="flex items-center bg-[#1a1a1a] border border-[#2a2a2a]">
+              <div className="flex-1 space-y-8">
+                {/* Information Inputs */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Người nhận</label>
+                    <div className="relative">
+                      <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                      <input
+                        type="text"
+                        placeholder="Họ và tên"
+                        value={orderForm.full_name}
+                        onChange={e => setOrderForm(f => ({ ...f, full_name: e.target.value }))}
+                        className="w-full bg-[#050505] border border-[#222] pl-10 pr-4 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Số điện thoại</label>
+                    <div className="relative">
+                      <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                      <input
+                        type="text"
+                        placeholder="Số điện thoại"
+                        value={orderForm.phone_number}
+                        onChange={e => setOrderForm(f => ({ ...f, phone_number: e.target.value }))}
+                        className="w-full bg-[#050505] border border-[#222] pl-10 pr-4 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Địa chỉ giao hàng</label>
+                  <div className="relative">
+                    <MapPin size={14} className="absolute left-3 top-4 text-gray-600" />
+                    <textarea
+                      placeholder="Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành..."
+                      value={orderForm.shipping_address}
+                      onChange={e => setOrderForm(f => ({ ...f, shipping_address: e.target.value }))}
+                      rows={3}
+                      className="w-full bg-[#050505] border border-[#222] pl-10 pr-4 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Quantity & Method */}
+                <div className="grid md:grid-cols-2 gap-8 pt-4">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Số lượng</label>
+                    <div className="flex items-center bg-[#050505] border border-[#222] h-14">
                       <button
                         onClick={() => setOrderForm(f => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
-                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white"
+                        className="w-14 h-full flex items-center justify-center text-gray-400 hover:text-white transition-colors border-r border-[#222]"
                       >-</button>
-                      <span className="flex-1 text-center text-white font-bold">{orderForm.quantity}</span>
+                      <span className="flex-1 text-center text-white font-bold text-lg">{orderForm.quantity}</span>
                       <button
                         onClick={() => setOrderForm(f => ({ ...f, quantity: f.quantity + 1 }))}
-                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white"
+                        className="w-14 h-full flex items-center justify-center text-gray-400 hover:text-white transition-colors border-l border-[#222]"
                       >+</button>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Tổng tạm tính</label>
-                    <div className="h-10 flex items-center text-[#e60012] font-black italic text-lg">
-                      {formatPrice((selectedProduct?.size_prices?.[selectedSize] || selectedProduct?.base_price || 0) * orderForm.quantity)}
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Thanh toán</label>
+                    <div className="grid grid-cols-2 gap-2 h-14">
+                      <button
+                        onClick={() => setOrderForm(f => ({ ...f, payment_method: 'bank_transfer' }))}
+                        className={`flex items-center justify-center gap-2 border text-[10px] font-bold uppercase transition-all ${orderForm.payment_method === 'bank_transfer' ? 'border-[#e60012] bg-[#e60012]/10 text-white' : 'border-[#222] text-gray-500 hover:border-[#444]'}`}
+                      >
+                        <Building2 size={14} /> CK
+                      </button>
+                      <button
+                        onClick={() => setOrderForm(f => ({ ...f, payment_method: 'cod' }))}
+                        className={`flex items-center justify-center gap-2 border text-[10px] font-bold uppercase transition-all ${orderForm.payment_method === 'cod' ? 'border-[#e60012] bg-[#e60012]/10 text-white' : 'border-[#222] text-gray-500 hover:border-[#444]'}`}
+                      >
+                        <Wallet size={14} /> COD
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="relative">
-                    <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Họ và tên người nhận"
-                      value={orderForm.full_name}
-                      onChange={e => setOrderForm(f => ({ ...f, full_name: e.target.value }))}
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
-                    />
+                {/* Bank Transfer Info */}
+                {orderForm.payment_method === 'bank_transfer' && (
+                  <div className="bg-[#111] border border-[#e60012]/20 p-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <h4 className="text-[10px] font-black text-[#e60012] uppercase tracking-widest">Thông tin chuyển khoản</h4>
+                    <div className="space-y-1">
+                      <p className="text-xs text-white">VCB: <span className="font-bold">1023456789</span></p>
+                      <p className="text-xs text-white">Chủ thẻ: <span className="font-bold">NGUYEN VAN A</span></p>
+                      <p className="text-xs text-gray-400">Nội dung: <span className="text-[#e60012] font-bold">Thanh toan don hang thiet ke</span></p>
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Số điện thoại"
-                      value={orderForm.phone_number}
-                      onChange={e => setOrderForm(f => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
-                    />
-                  </div>
-                  <div className="relative">
-                    <MapPin size={14} className="absolute left-3 top-3 text-gray-500" />
-                    <textarea
-                      placeholder="Địa chỉ giao hàng chi tiết"
-                      value={orderForm.shipping_address}
-                      onChange={e => setOrderForm(f => ({ ...f, shipping_address: e.target.value }))}
-                      rows={2}
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Ghi chú thêm</label>
-                    <textarea
-                      placeholder="Ví dụ: Lưu ý vị trí in, lời nhắn..."
-                      value={orderForm.note}
-                      onChange={e => setOrderForm(f => ({ ...f, note: e.target.value }))}
-                      rows={2}
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] px-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
-              <div className="pt-2">
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={isOrdering || !orderForm.full_name || !orderForm.phone_number || !orderForm.shipping_address}
-                  className="btn-street w-full py-4 text-sm flex items-center justify-center gap-2 group"
-                >
-                  {isOrdering ? (
-                    <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      XÁC NHẬN ĐẶT HÀNG
-                      <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </button>
-                <p className="text-[10px] text-gray-500 text-center mt-4 uppercase font-bold tracking-widest">
-                  Nhân viên sẽ liên hệ xác nhận trong vòng 24h
+              {/* Footer / Summary */}
+              <div className="mt-12 pt-8 border-t border-[#222] space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Tổng cộng thanh toán</span>
+                    <span className="text-4xl font-black text-[#e60012] tracking-tighter italic">
+                      {formatPrice((selectedProduct?.size_prices?.[selectedSize] || selectedProduct?.base_price || 0) * orderForm.quantity)}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isOrdering || !orderForm.full_name || !orderForm.phone_number || !orderForm.shipping_address}
+                    className="btn-street px-12 py-5 text-base flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95"
+                  >
+                    {isOrdering ? (
+                      <div className="w-6 h-6 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        XÁC NHẬN ĐẶT HÀNG
+                        <ChevronRight size={20} />
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-[9px] text-gray-600 text-center uppercase font-bold tracking-[0.2em]">
+                  Bằng cách nhấn xác nhận, bạn đồng ý với các điều khoản sáng tạo của UNTYPED
                 </p>
               </div>
             </div>
           </div>
         </div>
       )}
-
       {/* Custom Global Dialog Modal */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">

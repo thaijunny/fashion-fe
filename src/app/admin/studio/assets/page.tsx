@@ -308,7 +308,7 @@ export default function AdminStudioAssetsPage() {
                                     </div>
                                     <p className="text-[10px] text-gray-400">{t.width}×{t.height}px</p>
                                     <p className="text-xs font-bold text-green-600 mt-0.5">
-                                        {t.base_price ? `${Number(t.base_price).toLocaleString('vi-VN')}₫` : 'Chưa đặt giá'}
+                                        {(t.base_price !== undefined && t.base_price !== null) ? `${Number(t.base_price).toLocaleString('vi-VN')}₫` : 'Chưa đặt giá'}
                                     </p>
                                     <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => handleOpenModal(t)} className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-lg text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><Edit2 size={12} /></button>
@@ -424,6 +424,12 @@ export default function AdminStudioAssetsPage() {
                                                         className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl text-center" />
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Giá phôi cơ bản (VNĐ)</label>
+                                            <input type="number" value={formData.base_price || 0} onChange={(e) => setFormData({ ...formData, base_price: +e.target.value })}
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-indigo-600" placeholder="0" />
                                         </div>
 
                                         <div>
