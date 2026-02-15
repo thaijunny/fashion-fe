@@ -546,8 +546,8 @@ function StudioPageContent() {
   };
 
   const handleOpenOrderModal = async () => {
-    if (!projectId) {
-      showToast('Vui lòng lưu thiết kế của bạn trước khi tiếp tục.', 'error');
+    if (!user || !token || !projectId) {
+      showToast('Vui lòng đăng nhập và lưu thiết kế của bạn trước khi tiếp tục.', 'error');
       return;
     }
 
