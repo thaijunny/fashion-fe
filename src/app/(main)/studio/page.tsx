@@ -18,10 +18,7 @@ import {
   createDesignOrder,
   uploadFile,
   getImageUrl,
-  formatPrice,
-  aiGenerateImage,
-  aiReviewDesign,
-  aiSafetyCheck
+  formatPrice
 } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -52,9 +49,6 @@ import {
   Move,
   RotateCw,
   RotateCcw,
-  Zap,
-  ShieldCheck,
-  MessageSquare,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -189,9 +183,6 @@ function StudioPageContent() {
   });
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [previewImages, setPreviewImages] = useState<{ front: string | null; back: string | null }>({ front: null, back: null });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const [aiSafety, setAiSafety] = useState<any>(null);
   const [userUploads, setUserUploads] = useState<string[]>(() => {
     // Restore from localStorage on mount
     if (typeof window !== 'undefined') {
@@ -971,69 +962,35 @@ function StudioPageContent() {
     img.src = getImageUrl(serverPath);
   };
 
-  // AI Generation with Persona
+  // AI Generation Mock with Persona
   const generateAIImage = async () => {
     setIsGenerating(true);
-    try {
-      // Construct an optimized prompt using persona & streetwear aesthetics
-      const basePrompt = aiPersona.customVibe || "creative design";
-      const stylePrompts: { [key: string]: string } = {
-        hiphop: "streetwear hiphop style, graffiti, urban vibe, bold typography",
-        luxury: "clean minimalist luxury logo, premium fashion silhouette, gold/silver accents",
-        simple: "simple minimalist geometric design, clean lines, contemporary art",
-        cyberpunk: "cyberpunk futuristic techwear, neon glow, digital glitch aesthetic",
-      };
+    // Simulate complex AI reasoning based on persona
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
-      const fullPrompt = `${basePrompt}, style: ${stylePrompts[aiPersona.style] || "vector streetwear"}, personality: ${aiPersona.personality}, theme: ${aiPersona.zodiac}`;
+    // Mock results curated based on style
+    const styleGallery: { [key: string]: string[] } = {
+      hiphop: [
+        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&h=400&fit=crop', // Abstract Dark
+        'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop', // Cyber gradient
+      ],
+      luxury: [
+        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop', // Clean minimalist
+        'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=400&fit=crop', // Tech logo
+      ],
+      simple: [
+        'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=400&h=400&fit=crop', // Geometric
+        'https://images.unsplash.com/photo-1614851012115-59269bb0d6e6?w=400&h=400&fit=crop', // Minimalist
+      ],
+      cyberpunk: [
+        'https://images.unsplash.com/photo-1635776062127-d379bfcbb9c8?w=400&h=400&fit=crop', // Glitch art
+        'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop', // Neon abstract
+      ]
+    };
 
-      const resultUrl = await aiGenerateImage(fullPrompt);
-      if (resultUrl) {
-        setGeneratedImages(prev => [resultUrl, ...prev]);
-        setShowAIModal(false);
-        showToast('Tạo họa tiết AI thành công!', 'success');
-      } else {
-        showToast('Lỗi khi tạo ảnh AI. Vui lòng thử lại.', 'error');
-      }
-    } catch (error) {
-      console.error('AI Generation error:', error);
-      showToast('Có lỗi xảy ra khi kết nối AI', 'error');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleAnalyzeDesign = async () => {
-    setIsAnalyzing(true);
-    setAiAnalysis(null);
-    try {
-      const dataUrl = await generatePreview(viewSide);
-      if (!dataUrl) throw new Error('Preview failed');
-      const blob = await (await fetch(dataUrl)).blob();
-      const result = await aiReviewDesign(blob);
-      setAiAnalysis(result);
-    } catch (error) {
-      console.error('AI Review error:', error);
-      showToast('Lỗi khi phân tích thiết kế', 'error');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSafetyCheck = async () => {
-    setIsAnalyzing(true);
-    setAiSafety(null);
-    try {
-      const dataUrl = await generatePreview(viewSide);
-      if (!dataUrl) throw new Error('Preview failed');
-      const blob = await (await fetch(dataUrl)).blob();
-      const result = await aiSafetyCheck(blob);
-      setAiSafety(result);
-    } catch (error) {
-      console.error('AI Safety error:', error);
-      showToast('Lỗi khi kiểm tra an toàn', 'error');
-    } finally {
-      setIsAnalyzing(false);
-    }
+    const results = styleGallery[aiPersona.style] || styleGallery.hiphop;
+    setGeneratedImages(results);
+    setIsGenerating(false);
   };
 
   const addAIElement = (url: string) => {
@@ -1164,10 +1121,15 @@ function StudioPageContent() {
 
         if (el.type === 'text') {
           ctx.fillStyle = el.color || '#000000';
-          ctx.font = `${el.fontWeight || 'normal'} ${el.fontSize || 24}px ${el.fontFamily || 'Arial'}`;
-          ctx.textAlign = (el.textAlign as CanvasTextAlign) || 'left';
-          const textX = el.textAlign === 'center' ? absX + absW / 2 : el.textAlign === 'right' ? absX + absW : absX;
-          ctx.fillText(el.content, textX, absY + (el.fontSize || 24));
+          const fontSize = el.fontSize || 24;
+          ctx.font = `${el.fontWeight || 'normal'} ${fontSize}px ${el.fontFamily || 'Arial'}`;
+          // Match UI rendering: text is centered within the element bounding box by default
+          const align = (el.textAlign as CanvasTextAlign) || 'center';
+          ctx.textAlign = align;
+          ctx.textBaseline = 'middle';
+          const textX = align === 'center' ? absX + absW / 2 : align === 'right' ? absX + absW : absX;
+          const textY = absY + absH / 2;
+          ctx.fillText(el.content, textX, textY);
         } else if (el.type === 'shape') {
           ctx.fillStyle = el.color || '#000000';
           if (el.content === 'circle') {
@@ -1792,24 +1754,44 @@ function StudioPageContent() {
                 <h3 className="text-white font-bold mb-3">Chọn size</h3>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {(selectedProduct?.size_prices && Object.keys(selectedProduct.size_prices).length > 0
-                    ? Object.keys(selectedProduct.size_prices).map(sizeName => ({ id: sizeName, name: sizeName }))
+                    ? Object.keys(selectedProduct.size_prices).map(sizeName => ({ id: sizeName, name: sizeName, price: selectedProduct.size_prices[sizeName] }))
                     : sizeOptions
                   ).map((size: any) => (
                     <button
                       key={size.id || size.name}
                       onClick={() => setSelectedSize(size.name)}
-                      className={`px-3 py-1.5 rounded text-sm font-bold transition-all ${selectedSize === size.name
+                      className={`px-3 py-2 rounded text-sm font-bold transition-all flex flex-col items-center gap-0.5 min-w-[48px] ${selectedSize === size.name
                         ? 'bg-[#e60012] text-white'
                         : 'bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                         }`}
                     >
-                      {size.name}
+                      <span>{size.name}</span>
+                      {size.price !== undefined && size.price !== null && (
+                        <span className={`text-[9px] font-medium ${selectedSize === size.name ? 'text-white/80' : 'text-gray-500'}`}>
+                          {Number(size.price).toLocaleString('vi-VN')}đ
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
-                <div className="mb-4 p-2 bg-[#1a1a1a] rounded text-xs text-gray-400">
-                  📐 Vùng in: <span className="text-white font-bold">{currentSizeData?.printArea?.width ?? '—'}×{currentSizeData?.printArea?.height ?? '—'} cm</span>
-                </div>
+                {(() => {
+                  const sizePrice = selectedProduct?.size_prices?.[selectedSize];
+                  return sizePrice !== undefined && sizePrice !== null ? (
+                    <div className="mb-4 p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">💰 Giá size <span className="text-white font-bold">{selectedSize}</span></span>
+                        <span className="text-sm font-black text-[#e60012]">{Number(sizePrice).toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    </div>
+                  ) : selectedProduct?.base_price ? (
+                    <div className="mb-4 p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">💰 Giá phôi</span>
+                        <span className="text-sm font-black text-[#e60012]">{Number(selectedProduct.base_price).toLocaleString('vi-VN')}đ</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* Garment Color Selector */}
                 <h3 className="text-white font-bold mb-3">Màu áo</h3>
