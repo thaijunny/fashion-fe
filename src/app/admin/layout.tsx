@@ -16,7 +16,9 @@ import {
     X,
     SlidersHorizontal,
     Palette,
-    Sparkles
+    Sparkles,
+    ClipboardList,
+    FolderOpen
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -43,7 +45,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const menuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
         { name: 'Sản phẩm', icon: Package, href: '/admin/products' },
+        { name: 'Danh mục', icon: FolderOpen, href: '/admin/categories' },
         { name: 'Đơn hàng', icon: ShoppingBag, href: '/admin/orders' },
+        { name: 'Đơn thiết kế', icon: ClipboardList, href: '/admin/design-orders' },
         { name: 'Thuộc tính', icon: SlidersHorizontal, href: '/admin/attributes' },
         { name: 'Người dùng', icon: Users, href: '/admin/users' },
         { name: 'Thiết kế người dùng', icon: Sparkles, href: '/admin/studio/projects' },

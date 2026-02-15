@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
 const footerLinks = {
   shop: [
@@ -25,13 +28,16 @@ const footerLinks = {
   ],
 };
 
-const socialLinks = [
-  { href: 'https://instagram.com', icon: Instagram, label: 'Instagram' },
-  { href: 'https://facebook.com', icon: Facebook, label: 'Facebook' },
-  { href: 'https://youtube.com', icon: Youtube, label: 'Youtube' },
+const socialLinksData = (settings: any) => [
+  { href: settings.instagram_link || 'https://instagram.com', icon: Instagram, label: 'Instagram' },
+  { href: settings.facebook_link || 'https://facebook.com', icon: Facebook, label: 'Facebook' },
+  { href: settings.youtube_link || 'https://youtube.com', icon: Youtube, label: 'Youtube' },
 ];
 
 export default function Footer() {
+  const { settings } = useSettings();
+  const socials = socialLinksData(settings);
+
   return (
     <footer className="bg-[#0a0a0a] border-t border-[#2a2a2a] pt-16 pb-8">
       <div className="container-street">
@@ -55,23 +61,23 @@ export default function Footer() {
 
             {/* Contact Info */}
             <div className="space-y-3">
-              <a href="tel:0901234567" className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
+              <a href={`tel:${settings.phone_number || '0901234567'}`} className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
                 <Phone size={18} className="text-[#e60012]" />
-                <span>0901 234 567</span>
+                <span>{settings.phone_number || '0901 234 567'}</span>
               </a>
-              <a href="mailto:hello@untyped.vn" className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
+              <a href={`mailto:${settings.email || 'hello@untyped.vn'}`} className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
                 <Mail size={18} className="text-[#e60012]" />
-                <span>hello@untyped.vn</span>
+                <span>{settings.email || 'hello@untyped.vn'}</span>
               </a>
               <div className="flex items-start gap-3 text-gray-400">
                 <MapPin size={18} className="text-[#e60012] mt-0.5" />
-                <span>123 Nguyễn Huệ, Q.1, TP.HCM</span>
+                <span>{settings.address || '123 Nguyễn Huệ, Q.1, TP.HCM'}</span>
               </div>
             </div>
 
             {/* Social Links */}
             <div className="flex gap-4 mt-6">
-              {socialLinks.map((social) => (
+              {socials.map((social) => (
                 <a
                   key={social.label}
                   href={social.href}

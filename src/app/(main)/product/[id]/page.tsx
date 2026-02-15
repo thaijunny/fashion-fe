@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Heart, Minus, Plus, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, Minus, Plus, Check, ChevronRight, Ruler, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -22,6 +22,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const { addToCart } = useCart();
   const { user, openLoginModal } = useAuth();
@@ -190,6 +191,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <h3 className="text-white font-medium mb-3 uppercase tracking-wider text-sm">
                 Kích thước: <span className="text-[#e60012]">{selectedSize}</span>
               </h3>
+              {(product.category as any)?.size_guide_image && (
+                <button
+                  onClick={() => setShowSizeGuide(true)}
+                  className="mb-3 inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#e60012] transition-colors border border-[#2a2a2a] hover:border-[#e60012] px-3 py-1.5 rounded"
+                >
+                  <Ruler size={14} /> Bảng size
+                </button>
+              )}
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map((size) => (
                   <button
@@ -337,6 +346,29 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
+
+      {/* Size Guide Modal */}
+      {showSizeGuide && (product.category as any)?.size_guide_image && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)}>
+          <div className="relative max-w-2xl w-full bg-[#111] border border-[#2a2a2a] rounded-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
+              <h3 className="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-2">
+                <Ruler size={18} className="text-[#e60012]" /> Bảng Quy Đổi Size
+              </h3>
+              <button onClick={() => setShowSizeGuide(false)} className="p-2 text-gray-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <img
+                src={getImageUrl((product.category as any).size_guide_image)}
+                alt="Bảng size"
+                className="w-full h-auto rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

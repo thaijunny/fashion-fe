@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SettingsProvider } from "@/context/SettingsContext";
 
 // Be Vietnam Pro - Modern font with full Vietnamese support
 const beVietnamPro = Be_Vietnam_Pro({
@@ -35,9 +36,11 @@ export default function RootLayout({
       <body className="antialiased min-h-screen flex flex-col">
         <AuthProvider>
           <CartProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
+            <SettingsProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </SettingsProvider>
           </CartProvider>
         </AuthProvider>
       </body>

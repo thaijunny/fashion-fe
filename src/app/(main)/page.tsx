@@ -4,27 +4,33 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, Truck, Shield, RotateCcw } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
-import { fetchProducts, getFeaturedProducts } from '@/lib/api';
-import { categories } from '@/data/categories';
+import { fetchProducts, getFeaturedProducts, fetchCategories, getImageUrl } from '@/lib/api';
 import { Product } from '@/types';
 import { useState, useEffect } from 'react';
+import { useSettings } from '@/context/SettingsContext';
 
 export default function HomePage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const { settings } = useSettings();
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
-        const data = await fetchProducts();
-        setAllProducts(data.items);
+        const [prodData, catData] = await Promise.all([
+          fetchProducts(),
+          fetchCategories(),
+        ]);
+        setAllProducts(prodData.items);
+        setCategories(catData);
       } catch (error) {
-        console.error("Failed to fetch products:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setIsLoadingProducts(false);
       }
     };
-    loadProducts();
+    loadData();
   }, []);
 
   const featuredProducts = getFeaturedProducts(allProducts);
@@ -40,7 +46,9 @@ export default function HomePage() {
           <div
             className="absolute inset-0 opacity-40"
             style={{
-              backgroundImage: "url('/images/background.png')",
+              backgroundImage: settings.banner_image
+                ? `url('${getImageUrl(settings.banner_image)}')`
+                : "url('/images/background.png')",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
@@ -133,13 +141,21 @@ export default function HomePage() {
                 className="group relative aspect-[3/4] overflow-hidden bg-[#1a1a1a] slide-up"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                {/* Placeholder background with gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] group-hover:scale-110 transition-transform duration-500">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 rounded-full bg-[#e60012]/10 flex items-center justify-center">
-                      <span className="text-4xl">👕</span>
+                {/* Category image */}
+                <div className="absolute inset-0 group-hover:scale-110 transition-transform duration-500">
+                  {category.image ? (
+                    <img
+                      src={getImageUrl(category.image)}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-[#e60012]/10 flex items-center justify-center">
+                        <span className="text-4xl">👕</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Overlay */}

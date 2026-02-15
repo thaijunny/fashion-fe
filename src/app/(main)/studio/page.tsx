@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import {
@@ -11,12 +11,21 @@ import {
   fetchMaterials,
   createProject,
   updateProject,
-  getImageUrl
+  fetchUserProjectById,
+  fetchProjectByIdAdmin,
+  fetchUserProjects,
+  deleteProject,
+  createDesignOrder,
+  uploadFile,
+  getImageUrl,
+  formatPrice
 } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ChevronRight,
+  AlertTriangle,
   Save,
   Download,
   Undo,
@@ -50,7 +59,11 @@ import {
   X,
   Lock,
   Unlock,
-  Plus
+  Plus,
+  FolderOpen,
+  MapPin,
+  Phone,
+  User as UserIcon
 } from 'lucide-react';
 
 // Initial empty state
@@ -103,10 +116,12 @@ const getRotatedCursor = (handle: string, rotation: number = 0): string => {
   return cursors[newIndex];
 };
 
-export default function StudioPage() {
+function StudioPageContent() {
   const { user, token, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get('projectId');
 
   const [productTypes, setProductTypes] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -121,7 +136,7 @@ export default function StudioPage() {
   const [fontOptions, setFontOptions] = useState<any[]>([]);
   const [textTemplates, setTextTemplates] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery' | 'my-projects'>('templates');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -136,7 +151,42 @@ export default function StudioPage() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    quantity: 1,
+    full_name: '',
+    phone_number: '',
+    shipping_address: '',
+    note: '',
+  });
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    isAlert?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [userUploads, setUserUploads] = useState<string[]>(() => {
+    // Restore from localStorage on mount
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('studio_userUploads');
+        return saved ? JSON.parse(saved) : [];
+      } catch { return []; }
+    }
+    return [];
+  });
 
   // Separate elements for front and back
   const [frontElements, setFrontElements] = useState<DesignElement[]>([]);
@@ -329,6 +379,8 @@ export default function StudioPage() {
             icon: t.icon || '👕',
             width: t.width || 400,
             height: t.height || 500,
+            base_price: t.base_price || 0,
+            size_prices: t.size_prices || {},
             variants: {
               front: {
                 name: 'Mặt Trước',
@@ -344,6 +396,44 @@ export default function StudioPage() {
           }));
           setProductTypes(designables);
           setSelectedProduct(designables[0]);
+
+          // Load existing project if projectId is in URL
+          if (urlProjectId && token) {
+            try {
+              const isAdmin = user?.role === 'admin';
+              const project = isAdmin
+                ? await fetchProjectByIdAdmin(urlProjectId, token)
+                : await fetchUserProjectById(urlProjectId, token);
+
+              if (project) {
+                console.log('[Studio] Loaded project:', project.id, project.name);
+                setProjectId(project.id);
+                setDesignName(project.name || 'Thiết kế mới');
+                if (project.garment_color) setSelectedProductColor(project.garment_color);
+                if (project.garment_size) setSelectedSize(project.garment_size);
+
+                // Restore template selection
+                const templateId = project.garment_template_id || project.design_data?.templateId;
+                if (templateId) {
+                  const matchingTemplate = designables.find((d: any) => d.id === templateId);
+                  if (matchingTemplate) setSelectedProduct(matchingTemplate);
+                }
+
+                // Restore design elements
+                if (project.design_data) {
+                  if (project.design_data.front) setFrontElements(project.design_data.front);
+                  if (project.design_data.back) setBackElements(project.design_data.back);
+                  if (project.design_data.viewSide) setViewSide(project.design_data.viewSide);
+                  if (project.design_data.userUploads) setUserUploads(project.design_data.userUploads);
+                  if (project.design_data.generatedImages) setGeneratedImages(project.design_data.generatedImages);
+                }
+              } else {
+                console.warn('[Studio] Failed to load project:', urlProjectId);
+              }
+            } catch (err) {
+              console.error('[Studio] Error loading project:', err);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading studio data:', error);
@@ -351,7 +441,64 @@ export default function StudioPage() {
     };
 
     loadData();
-  }, [authLoading, token, router]);
+  }, [authLoading, token, router, urlProjectId]);
+
+  // Persist userUploads to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studio_userUploads', JSON.stringify(userUploads));
+    }
+  }, [userUploads]);
+
+  const loadMyProjects = useCallback(async () => {
+    if (!token) return;
+    setLoadingProjects(true);
+    try {
+      const projects = await fetchUserProjects(token);
+      setMyProjects(projects);
+    } catch (err) {
+      console.error('Error loading my projects:', err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === 'my-projects') {
+      loadMyProjects();
+    }
+  }, [activeTab, loadMyProjects]);
+
+  const handlePlaceOrder = async () => {
+    if (!user || !token || !projectId || !selectedProduct) return;
+    setIsOrdering(true);
+    try {
+      // Calculate price based on size
+      const sizePrice = selectedProduct.size_prices?.[selectedSize] || selectedProduct.base_price || 0;
+      const totalAmount = sizePrice * orderForm.quantity;
+
+      const { quantity, ...restOfForm } = orderForm;
+      const orderData = {
+        project_id: projectId,
+        garment_template_id: selectedProduct.id,
+        garment_size: selectedSize,
+        garment_color: selectedProductColor,
+        quantity: quantity,
+        ...restOfForm,
+        total_amount: totalAmount,
+      };
+
+      await createDesignOrder(orderData, token);
+      setShowOrderModal(false);
+      showToast('Đặt hàng thành công! Chúng tôi sẽ sớm liên hệ với bạn.', 'success');
+      router.push('/design-orders');
+    } catch (error: any) {
+      console.error('Error placing design order:', error);
+      showToast(error.message || 'Không thể đặt hàng. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsOrdering(false);
+    }
+  };
 
   // Zoom with mouse wheel
   React.useEffect(() => {
@@ -689,42 +836,71 @@ export default function StudioPage() {
     setSelectedElementIds([newElement.id]);
   };
 
-  // Image upload handler
+  // Image upload handler — uploads to server
   const addImageElement = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const dataUrl = event.target?.result as string;
-          // Create image to get natural dimensions
-          const img = new Image();
-          img.onload = () => {
-            // Scale down if too large, max 200px width
-            const maxWidth = 200;
-            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-            const newElement: DesignElement = {
-              id: `image-${Date.now()}`,
-              type: 'image',
-              x: 100,
-              y: 150,
-              width: img.width * scale,
-              height: img.height * scale,
-              content: dataUrl,
-              opacity: 100,
-            };
-            setElements([...elements, newElement]);
-            setSelectedElementIds([newElement.id]);
+      if (!file || !token) return;
+      try {
+        const serverPath = await uploadFile(file, token);
+        if (!serverPath) {
+          showToast('Tải ảnh thất bại', 'error');
+          return;
+        }
+        // Add to user uploads gallery
+        setUserUploads(prev => [serverPath, ...prev]);
+        // Create image to get natural dimensions
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const maxWidth = 200;
+          const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+          const newElement: DesignElement = {
+            id: `image-${Date.now()}`,
+            type: 'image',
+            x: 100,
+            y: 150,
+            width: img.width * scale,
+            height: img.height * scale,
+            content: serverPath,
+            opacity: 100,
           };
-          img.src = dataUrl;
+          setElements([...elements, newElement]);
+          setSelectedElementIds([newElement.id]);
         };
-        reader.readAsDataURL(file);
+        img.src = getImageUrl(serverPath);
+      } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Tải ảnh thất bại', 'error');
       }
     };
     input.click();
+  };
+
+  // Add an already-uploaded image to canvas
+  const addUploadedImageToCanvas = (serverPath: string) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const maxWidth = 200;
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+      const newElement: DesignElement = {
+        id: `image-${Date.now()}`,
+        type: 'image',
+        x: 100,
+        y: 150,
+        width: img.width * scale,
+        height: img.height * scale,
+        content: serverPath,
+        opacity: 100,
+      };
+      setElements([...elements, newElement]);
+      setSelectedElementIds([newElement.id]);
+    };
+    img.src = getImageUrl(serverPath);
   };
 
   // AI Generation Mock with Persona
@@ -881,26 +1057,44 @@ export default function StudioPage() {
       const previewFront = generatePreview('front');
       const previewBack = generatePreview('back');
 
+      const templateId = selectedProduct?.id || null;
+      console.log('[Studio Save] templateId:', templateId, '| projectId:', projectId, '| name:', designName);
+
       const designData = {
         name: designName,
-        garment_template_id: selectedProduct?.id || null,
+        garment_template_id: templateId,
         garment_color: selectedProductColor,
         garment_size: selectedSize,
         design_data: {
           front: frontElements,
           back: backElements,
+          templateId: templateId,
           templateName: selectedProduct?.name,
           viewSide,
+          userUploads,
+          generatedImages,
         },
         preview_front: previewFront,
         preview_back: previewBack,
       };
 
       if (projectId) {
-        await updateProject(projectId, designData, token!);
+        const result = await updateProject(projectId, designData, token!);
+        console.log('[Studio Save] Updated project:', projectId, result ? 'OK' : 'FAILED');
+        if (!result) {
+          showToast('Cập nhật thất bại, thử lại...', 'error');
+          return;
+        }
       } else {
         const saved = await createProject(designData, token!);
-        if (saved?.id) setProjectId(saved.id);
+        console.log('[Studio Save] Created project:', saved);
+        if (saved?.id) {
+          setProjectId(saved.id);
+          console.log('[Studio Save] Set projectId to:', saved.id);
+        } else {
+          showToast('Lưu thất bại — không nhận được ID dự án.', 'error');
+          return;
+        }
       }
       setHasUnsavedChanges(false);
       showToast('Đã lưu thiết kế thành công!');
@@ -910,6 +1104,14 @@ export default function StudioPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Save and then navigate away
+  const handleSaveAndExit = async () => {
+    if (!user || isSaving) return;
+    await handleSaveDesign();
+    setShowExitWarning(false);
+    router.push(pendingPath || '/');
   };
 
   const handleExit = (path: string = '/') => {
@@ -1127,9 +1329,17 @@ export default function StudioPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      showToast('Đang tải thiết kế về máy...');
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Không thể tải xuống. Vui lòng thử lại.');
+      setConfirmModal({
+        isOpen: true,
+        title: 'Lỗi tải xuống',
+        message: 'Không thể tải xuống thiết kế. Vui lòng thử lại sau.',
+        isAlert: true,
+        onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false })),
+        confirmText: 'Đóng'
+      });
     }
   };
 
@@ -1353,14 +1563,12 @@ export default function StudioPage() {
             <Sparkles size={16} />
             Sáng tạo AI
           </button>
-          <button
-            onClick={exportPrintData}
-            className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
-            title="Xuất file cho xưởng in với kích thước chính xác (cm)"
-          >
-            📐 Xuất file in
-          </button>
-          <button className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
+
+          <button onClick={() => {
+            if (!projectId) { showToast('Vui lòng lưu thiết kế trước khi đặt hàng', 'error'); return; }
+            setOrderForm(f => ({ ...f, full_name: user?.full_name || '', quantity: 1 }));
+            setShowOrderModal(true);
+          }} className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
             <ShoppingBag size={16} />
             Đặt hàng
           </button>
@@ -1372,10 +1580,11 @@ export default function StudioPage() {
         <aside className="w-16 bg-[#1a1a1a] border-r border-[#2a2a2a] flex flex-col items-center py-4 gap-2">
           {[
             { id: 'templates', icon: Layers, label: 'Templates' },
-            { id: 'ai-gallery', icon: Sparkles, label: 'AI Gallery' },
+            { id: 'my-projects', icon: FolderOpen, label: 'Projects' },
+            { id: 'ai-gallery', icon: Sparkles, label: 'AI' },
             { id: 'text', icon: Type, label: 'Text' },
             { id: 'shapes', icon: Square, label: 'Shapes' },
-            { id: 'images', icon: ImageIcon, label: 'Images' },
+            { id: 'images', icon: ImageIcon, label: 'Upload' },
             { id: 'stickers', icon: Sticker, label: 'Stickers' },
           ].map((tool) => (
             <button
@@ -1414,6 +1623,9 @@ export default function StudioPage() {
                         className="w-full h-20 object-contain mb-2"
                       />
                       <span className="text-xs text-gray-300 block truncate">{product.name}</span>
+                      {product.base_price > 0 && (
+                        <span className="text-[10px] text-[#e60012] font-bold">{Number(product.base_price).toLocaleString('vi-VN')}đ</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1573,7 +1785,7 @@ export default function StudioPage() {
 
             {activeTab === 'images' && (
               <>
-                <h3 className="text-white font-bold mb-4">Hình ảnh</h3>
+                <h3 className="text-white font-bold mb-4">Ảnh của bạn</h3>
                 <button
                   onClick={addImageElement}
                   className="w-full p-6 border border-dashed border-[#2a2a2a] text-gray-400 hover:border-[#e60012] hover:text-[#e60012] transition-colors rounded-lg flex flex-col items-center gap-2"
@@ -1582,8 +1794,24 @@ export default function StudioPage() {
                   <span>Tải ảnh lên</span>
                 </button>
                 <p className="text-gray-500 text-xs mt-2 text-center">
-                  Hỗ trợ: JPG, PNG, SVG
+                  Hỗ trợ: JPG, PNG, SVG — ảnh được lưu trên server
                 </p>
+                {userUploads.length > 0 && (
+                  <>
+                    <h4 className="text-gray-300 text-sm font-medium mt-4 mb-2">Đã tải lên</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {userUploads.map((url, i) => (
+                        <button
+                          key={i}
+                          onClick={() => addUploadedImageToCanvas(url)}
+                          className="aspect-square bg-[#1a1a1a] rounded overflow-hidden border border-[#2a2a2a] hover:border-[#e60012] transition-colors"
+                        >
+                          <img src={getImageUrl(url)} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             )}
 
@@ -1591,7 +1819,7 @@ export default function StudioPage() {
             {activeTab === 'ai-gallery' && (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white font-bold">Thư viện AI & Uploads</h3>
+                  <h3 className="text-white font-bold">AI</h3>
                   <button
                     onClick={() => setShowAIModal(true)}
                     className="text-[10px] bg-[#e60012] text-white px-2 py-1 rounded font-bold uppercase italic"
@@ -1606,14 +1834,15 @@ export default function StudioPage() {
                     <h4 className="text-gray-500 text-[10px] uppercase font-bold mb-3 tracking-widest">Thiết kế AI</h4>
                     {(user?.ai_images?.length || 0) + generatedImages.length === 0 ? (
                       <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
-                        <p className="text-gray-600 text-[10px] uppercase">Trống</p>
+                        <p className="text-gray-600 text-[10px] uppercase">Chưa có ảnh AI</p>
+                        <p className="text-gray-700 text-[10px] mt-1">Bấm "Tạo mới AI" để bắt đầu</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
                         {[...(user?.ai_images || []), ...generatedImages].map((url, idx) => (
                           <button
                             key={idx}
-                            onClick={() => addStickerElement(url)} // Reusing as image essentially
+                            onClick={() => addStickerElement(url)}
                             className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
                           >
                             <img src={url} alt="AI" className="w-full h-full object-cover" />
@@ -1625,35 +1854,10 @@ export default function StudioPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Personal Uploads Section */}
-                  <div>
-                    <h4 className="text-gray-500 text-[10px] uppercase font-bold mb-3 tracking-widest">Ảnh tải lên</h4>
-                    {!(user?.uploaded_images?.length) ? (
-                      <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
-                        <p className="text-gray-600 text-[10px] uppercase">Trống</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {user.uploaded_images.map((url, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => addAIElement(url)}
-                            className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
-                          >
-                            <img src={url} alt="Upload" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
-                              <Plus className="text-white" size={16} />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="mt-6 p-3 bg-[#e60012]/5 border border-[#e60012]/20 rounded text-[10px] text-gray-400 italic leading-relaxed">
-                  Thư viện cá nhân giúp bạn lưu trữ các thiết kế yêu thích.
+                  Ảnh AI được lưu tự động khi bạn lưu thiết kế.
                 </div>
               </>
             )}
@@ -1676,6 +1880,71 @@ export default function StudioPage() {
                     );
                   })}
                 </div>
+              </>
+            )}
+            {activeTab === 'my-projects' && (
+              <>
+                <h3 className="text-white font-bold mb-4">Dự án của tôi</h3>
+                {loadingProjects ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-[#e60012]/30 border-t-[#e60012] rounded-full animate-spin" />
+                  </div>
+                ) : myProjects.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-8">Chưa có dự án nào</p>
+                ) : (
+                  <div className="space-y-2">
+                    {myProjects.map(p => (
+                      <div key={p.id} className={`group bg-[#1a1a1a] border rounded-lg overflow-hidden hover:border-[#e60012]/50 transition-all ${p.id === projectId ? 'border-[#e60012]' : 'border-[#2a2a2a]'}`}>
+                        <div className="flex items-center gap-3 p-2">
+                          <div className="w-12 h-14 bg-[#111] rounded overflow-hidden flex-shrink-0">
+                            {p.preview_front ? (
+                              <img src={p.preview_front.startsWith('data:') ? p.preview_front : getImageUrl(p.preview_front)} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Layers size={16} className="text-gray-600" /></div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{p.name || 'Chưa đặt tên'}</p>
+                            <p className="text-gray-500 text-[10px]">{new Date(p.updated_at || p.created_at).toLocaleDateString('vi-VN')}</p>
+                          </div>
+                        </div>
+                        <div className="flex border-t border-[#2a2a2a]">
+                          <button
+                            onClick={() => router.push(`/studio?projectId=${p.id}`)}
+                            className="flex-1 text-[10px] font-bold text-gray-400 hover:text-white hover:bg-[#2a2a2a] py-1.5 transition-colors uppercase tracking-wider"
+                          >
+                            Mở
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmModal({
+                                isOpen: true,
+                                title: 'Xác nhận xóa',
+                                message: `Bạn có chắc chắn muốn xóa dự án "${p.name || 'Chưa đặt tên'}" không? Thao tác này không thể hoàn tác.`,
+                                confirmText: 'Xóa dự án',
+                                cancelText: 'Bỏ qua',
+                                onConfirm: async () => {
+                                  try {
+                                    await deleteProject(p.id, token!);
+                                    setMyProjects(prev => prev.filter(x => x.id !== p.id));
+                                    if (projectId === p.id) setProjectId(null);
+                                    showToast('Đã xóa dự án thành công');
+                                  } catch (err) {
+                                    showToast('Xóa dự án thất bại. Vui lòng thử lại.', 'error');
+                                  }
+                                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                                }
+                              });
+                            }}
+                            className="flex-1 text-[10px] font-bold text-gray-400 hover:text-red-500 hover:bg-red-500/10 py-1.5 transition-colors uppercase tracking-wider border-l border-[#2a2a2a]"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -2630,8 +2899,14 @@ export default function StudioPage() {
                               )}
                               {element.type === 'shape' && (
                                 <div
-                                  className="w-full h-full rounded"
-                                  style={{ backgroundColor: element.color }}
+                                  className="w-full h-full"
+                                  style={{
+                                    backgroundColor: element.color,
+                                    borderRadius: element.content === 'circle' ? '50%' : '0',
+                                    clipPath: element.content === 'triangle'
+                                      ? 'polygon(50% 0%, 0% 100%, 100% 100%)'
+                                      : undefined,
+                                  }}
                                 />
                               )}
                               {element.type === 'sticker' && (
@@ -2723,8 +2998,14 @@ export default function StudioPage() {
                               )}
                               {element.type === 'shape' && (
                                 <div
-                                  className="w-full h-full rounded"
-                                  style={{ backgroundColor: element.color }}
+                                  className="w-full h-full"
+                                  style={{
+                                    backgroundColor: element.color,
+                                    borderRadius: element.content === 'circle' ? '50%' : '0',
+                                    clipPath: element.content === 'triangle'
+                                      ? 'polygon(50% 0%, 0% 100%, 100% 100%)'
+                                      : undefined,
+                                  }}
                                 />
                               )}
                               {element.type === 'sticker' && (
@@ -2980,7 +3261,7 @@ export default function StudioPage() {
             </p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={handleSaveDesign}
+                onClick={handleSaveAndExit}
                 className="btn-street w-full py-4 text-sm"
               >
                 LƯU VÀ THOÁT
@@ -3004,6 +3285,167 @@ export default function StudioPage() {
           </div>
         </div>
       )}
+
+      {/* Design Order Modal */}
+      {showOrderModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowOrderModal(false)} />
+          <div className="relative bg-[#0f0f0f] border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-none shadow-2xl flex flex-col md:flex-row">
+            {/* Left: Preview */}
+            <div className="md:w-1/2 bg-[#111] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#2a2a2a]">
+              <div className="relative aspect-[3/4] w-full max-w-[240px] bg-[#0a0a0a] border border-[#2a2a2a] mb-4">
+                <img
+                  src={generatePreview('front') || ''}
+                  alt="Preview Front"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="text-center">
+                <p className="text-white font-bold uppercase tracking-widest text-xs mb-1">{designName}</p>
+                <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">
+                  {selectedProduct?.name} · {selectedProductColor} · Size {selectedSize}
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Form */}
+            <div className="md:w-1/2 p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Đặt hàng <span className="text-[#e60012]">Thiết kế</span></h2>
+                <button onClick={() => setShowOrderModal(false)} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Số lượng</label>
+                    <div className="flex items-center bg-[#1a1a1a] border border-[#2a2a2a]">
+                      <button
+                        onClick={() => setOrderForm(f => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white"
+                      >-</button>
+                      <span className="flex-1 text-center text-white font-bold">{orderForm.quantity}</span>
+                      <button
+                        onClick={() => setOrderForm(f => ({ ...f, quantity: f.quantity + 1 }))}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Tổng tạm tính</label>
+                    <div className="h-10 flex items-center text-[#e60012] font-black italic text-lg">
+                      {formatPrice((selectedProduct?.size_prices?.[selectedSize] || selectedProduct?.base_price || 0) * orderForm.quantity)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Họ và tên người nhận"
+                      value={orderForm.full_name}
+                      onChange={e => setOrderForm(f => ({ ...f, full_name: e.target.value }))}
+                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Số điện thoại"
+                      value={orderForm.phone_number}
+                      onChange={e => setOrderForm(f => ({ ...f, phone_number: e.target.value }))}
+                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
+                    />
+                  </div>
+                  <div className="relative">
+                    <MapPin size={14} className="absolute left-3 top-3 text-gray-500" />
+                    <textarea
+                      placeholder="Địa chỉ giao hàng chi tiết"
+                      value={orderForm.shipping_address}
+                      onChange={e => setOrderForm(f => ({ ...f, shipping_address: e.target.value }))}
+                      rows={2}
+                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] pl-10 pr-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Ghi chú thêm</label>
+                    <textarea
+                      placeholder="Ví dụ: Lưu ý vị trí in, lời nhắn..."
+                      value={orderForm.note}
+                      onChange={e => setOrderForm(f => ({ ...f, note: e.target.value }))}
+                      rows={2}
+                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] px-4 py-3 text-white text-sm focus:border-[#e60012] transition-colors outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handlePlaceOrder}
+                  disabled={isOrdering || !orderForm.full_name || !orderForm.phone_number || !orderForm.shipping_address}
+                  className="btn-street w-full py-4 text-sm flex items-center justify-center gap-2 group"
+                >
+                  {isOrdering ? (
+                    <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      XÁC NHẬN ĐẶT HÀNG
+                      <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-gray-500 text-center mt-4 uppercase font-bold tracking-widest">
+                  Nhân viên sẽ liên hệ xác nhận trong vòng 24h
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Global Dialog Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => !confirmModal.isAlert && setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
+          <div className="relative bg-[#0f0f0f] border border-white/10 p-8 max-w-md w-full rounded-2xl shadow-2xl text-center animate-in zoom-in-95 duration-200">
+            <div className={`w-20 h-20 ${confirmModal.isAlert ? 'bg-yellow-500/10' : 'bg-[#e60012]/10'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+              {confirmModal.isAlert ? <AlertTriangle className="text-yellow-500" size={40} /> : <Trash2 className="text-[#e60012]" size={40} />}
+            </div>
+            <h2 className="text-2xl font-black text-white uppercase italic mb-4">{confirmModal.title}</h2>
+            <p className="text-gray-400 mb-8 leading-relaxed">
+              {confirmModal.message}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={confirmModal.onConfirm}
+                className={`btn-street w-full py-4 text-sm ${confirmModal.isAlert ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+              >
+                {confirmModal.confirmText || 'XÁC NHẬN'}
+              </button>
+              {!confirmModal.isAlert && (
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                  className="w-full py-2 text-sm text-gray-500 hover:text-white transition-colors uppercase font-bold"
+                >
+                  {confirmModal.cancelText || 'HỦY BỎ'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><div className="text-white text-lg">Đang tải Studio...</div></div>}>
+      <StudioPageContent />
+    </Suspense>
   );
 }

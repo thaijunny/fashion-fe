@@ -620,6 +620,34 @@ export async function fetchOrderedProjectsAdmin(token: string) {
   }
 }
 
+export async function fetchProjectByIdAdmin(id: string, token: string) {
+  try {
+    const res = await fetch(`${API_URL}/projects/admin/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function updateProjectAdmin(id: string, data: any, token: string) {
+  try {
+    const res = await fetch(`${API_URL}/projects/admin/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createProject(data: any, token: string) {
   try {
     const res = await fetch(`${API_URL}/projects`, {
@@ -674,4 +702,129 @@ export async function fetchUserProjects(token: string) {
   } catch {
     return [];
   }
+}
+
+export async function deleteProject(id: string, token: string) {
+  const res = await fetch(`${API_URL}/projects/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi xóa dự án'); }
+  return await res.json();
+}
+
+// ── DESIGN ORDER APIs ──────────────────────────────────────────────
+
+export async function createDesignOrder(data: any, token: string) {
+  const res = await fetch(`${API_URL}/design-orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi đặt hàng'); }
+  return await res.json();
+}
+
+export async function fetchMyDesignOrders(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/design-orders/my`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+export async function fetchDesignOrderById(id: string, token: string) {
+  try {
+    const res = await fetch(`${API_URL}/design-orders/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+export async function fetchAllDesignOrdersAdmin(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/design-orders`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+export async function updateDesignOrderStatusAdmin(id: string, status: string, token: string) {
+  const res = await fetch(`${API_URL}/design-orders/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi cập nhật'); }
+  return await res.json();
+}
+
+export async function downloadDesignOrderZip(id: string, token: string) {
+  const res = await fetch(`${API_URL}/design-orders/${id}/download`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Tải xuống thất bại');
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `design_order_${id}.zip`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+// ── USER MANAGEMENT APIs (Admin) ───────────────────────────────────
+
+export async function fetchAllUsersAdmin(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/users`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+export async function toggleBlockUser(id: string, token: string) {
+  const res = await fetch(`${API_URL}/users/${id}/block`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi'); }
+  return await res.json();
+}
+
+export async function updateUserRole(id: string, role: string, token: string) {
+  const res = await fetch(`${API_URL}/users/${id}/role`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi'); }
+  return await res.json();
+}
+// ── SYSTEM SETTINGS APIs ──────────────────────────────────────────
+
+export async function fetchSettings() {
+  try {
+    const res = await fetch(`${API_URL}/settings`);
+    if (!res.ok) return {};
+    return await res.json();
+  } catch { return {}; }
+}
+
+export async function updateSettings(data: Record<string, any>, token: string) {
+  const res = await fetch(`${API_URL}/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi cập nhật cài đặt'); }
+  return await res.json();
 }

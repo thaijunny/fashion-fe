@@ -95,7 +95,8 @@ export default function AdminStudioAssetsPage() {
                 setFormData({ name: '', hex_code: '#000000' });
             } else if (activeTab === 'templates') {
                 setFormData({
-                    name: '', icon: '👕', width: 400, height: 500,
+                    name: '', icon: '👕', width: 400, height: 500, base_price: 0,
+                    size_prices: { S: 0, M: 0, L: 0, XL: 0, '2XL': 0 },
                     front_image: '', back_image: '',
                     front_design_area: { left: 25, top: 20, right: 25, bottom: 30 },
                     back_design_area: { left: 25, top: 15, right: 25, bottom: 25 },
@@ -306,6 +307,9 @@ export default function AdminStudioAssetsPage() {
                                         <p className="text-sm font-bold text-gray-900 truncate">{t.name}</p>
                                     </div>
                                     <p className="text-[10px] text-gray-400">{t.width}×{t.height}px</p>
+                                    <p className="text-xs font-bold text-green-600 mt-0.5">
+                                        {t.base_price ? `${Number(t.base_price).toLocaleString('vi-VN')}₫` : 'Chưa đặt giá'}
+                                    </p>
                                     <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => handleOpenModal(t)} className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-lg text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"><Edit2 size={12} /></button>
                                         <button onClick={() => handleDeleteClick(t.id, t.name)} className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-lg text-red-600 hover:bg-red-600 hover:text-white transition-all"><Trash2 size={12} /></button>
@@ -332,7 +336,7 @@ export default function AdminStudioAssetsPage() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                    <div className={`relative bg-white rounded-3xl shadow-2xl w-full ${activeTab === 'templates' ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto`}>
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <h2 className="text-xl font-black text-gray-900 uppercase italic">
                                 {editingItem ? 'Cập nhật' : 'Thêm mới'} {activeTab === 'colors' ? 'Màu sắc' : activeTab === 'templates' ? 'Phôi áo' : 'Tài nguyên'}
@@ -420,6 +424,53 @@ export default function AdminStudioAssetsPage() {
                                                         className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl text-center" />
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Giá theo size (VNĐ)</label>
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                {Object.keys(formData.size_prices || {}).map(size => (
+                                                    <div key={size} className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                                                        <span className="text-[9px] font-bold text-gray-500 w-8 text-center">{size}</span>
+                                                        <input type="number" value={formData.size_prices?.[size] ?? 0}
+                                                            onChange={(e) => setFormData({ ...formData, size_prices: { ...formData.size_prices, [size]: +e.target.value } })}
+                                                            className="w-24 px-2 py-1 bg-white border border-gray-200 rounded text-center text-sm" placeholder="0" />
+                                                        <button type="button" onClick={() => {
+                                                            const newPrices = { ...formData.size_prices };
+                                                            delete newPrices[size];
+                                                            setFormData({ ...formData, size_prices: newPrices });
+                                                        }} className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="text" id="newSizeInput" placeholder="VD: XXL"
+                                                    className="w-20 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-center"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const input = e.target as HTMLInputElement;
+                                                            const val = input.value.trim().toUpperCase();
+                                                            if (val && !(formData.size_prices || {})[val]) {
+                                                                setFormData({ ...formData, size_prices: { ...formData.size_prices, [val]: formData.base_price || 0 } });
+                                                                input.value = '';
+                                                            }
+                                                        }
+                                                    }} />
+                                                <button type="button" onClick={() => {
+                                                    const input = document.getElementById('newSizeInput') as HTMLInputElement;
+                                                    const val = input?.value?.trim().toUpperCase();
+                                                    if (val && !(formData.size_prices || {})[val]) {
+                                                        setFormData({ ...formData, size_prices: { ...formData.size_prices, [val]: formData.base_price || 0 } });
+                                                        if (input) input.value = '';
+                                                    }
+                                                }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                                                    <Plus size={14} /> Thêm size
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-1">💡 Nhập tên size rồi nhấn Enter hoặc "Thêm size" để thêm.</p>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

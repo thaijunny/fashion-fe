@@ -7,11 +7,13 @@ import { Menu, X, Search, ShoppingBag, User, LogOut, ChevronDown, Shield } from 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 
 const navLinks = [
   { href: '/', label: 'Trang Chủ' },
   { href: '/products', label: 'Sản Phẩm' },
   { href: '/studio', label: 'Design Studio' },
+  { href: '/design-orders', label: 'Đơn Thiết Kế' },
   { href: '/about', label: 'Về Chúng Tôi' },
 ];
 
@@ -22,6 +24,7 @@ export default function Header() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
   const { itemCount } = useCart();
+  const { settings } = useSettings();
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -39,9 +42,9 @@ export default function Header() {
       <div className="bg-[#e60012] text-white text-center py-2 text-sm font-medium">
         <div className="marquee-container">
           <span className="marquee-content">
-            🔥 FREESHIP CHO ĐƠN HÀNG TỪ 500K • GIẢM 10% CHO THÀNH VIÊN MỚI • THIẾT KẾ RIÊNG TẠI DESIGN STUDIO 🔥
+            {settings.marquee_content || '🔥 FREESHIP CHO ĐƠN HÀNG TỪ 500K • GIẢM 10% CHO THÀNH VIÊN MỚI • THIẾT KẾ RIÊNG TẠI DESIGN STUDIO 🔥'}
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            🔥 FREESHIP CHO ĐƠN HÀNG TỪ 500K • GIẢM 10% CHO THÀNH VIÊN MỚI • THIẾT KẾ RIÊNG TẠI DESIGN STUDIO 🔥
+            {settings.marquee_content || '🔥 FREESHIP CHO ĐƠN HÀNG TỪ 500K • GIẢM 10% CHO THÀNH VIÊN MỚI • THIẾT KẾ RIÊNG TẠI DESIGN STUDIO 🔥'}
           </span>
         </div>
       </div>
