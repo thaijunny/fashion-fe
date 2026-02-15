@@ -11,11 +11,11 @@ export function getImageUrl(path: string): string {
 }
 
 // Upload a file to the server, returns the URL path
-export async function uploadFile(file: File, token: string): Promise<string | null> {
+export async function uploadFile(file: File, token: string, folder: 'products' | 'studio' = 'studio'): Promise<string | null> {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${API_URL}/upload`, {
+    const res = await fetch(`${API_URL}/upload?folder=${folder}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData,

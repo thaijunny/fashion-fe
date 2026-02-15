@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { fetchProducts, formatPrice, getImageUrl, updateProduct, deleteProduct, createProduct, fetchCategories, fetchSizes, fetchColors, fetchMaterials } from '@/lib/api';
+import { fetchProducts, formatPrice, getImageUrl, updateProduct, deleteProduct, createProduct, fetchCategories, fetchSizes, fetchColors, fetchMaterials, uploadFile } from '@/lib/api';
 import { Product, Category, Size, Color, MaterialType } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 import {
@@ -15,7 +15,8 @@ import {
     ChevronLeft,
     ChevronRight,
     ExternalLink,
-    X
+    X,
+    Upload
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -706,6 +707,48 @@ export default function AdminProductsPage() {
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
                                     placeholder="Nhập mô tả sản phẩm..."
                                 />
+                            </div>
+
+                            {/* Images Section */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700">Hình ảnh sản phẩm</label>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                                    {formData.images.map((img, idx) => (
+                                        <div key={idx} className="relative group aspect-square rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+                                            <Image src={getImageUrl(img)} alt="" fill className="object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, images: formData.images.filter((_, i) => i !== idx) })}
+                                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <label className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all text-gray-400 hover:text-indigo-500">
+                                        <Upload size={20} />
+                                        <span className="text-[10px] font-bold mt-1">Thêm ảnh</span>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                if (!files.length || !token) return;
+
+                                                for (const file of files) {
+                                                    const url = await uploadFile(file, token, 'products');
+                                                    if (url) {
+                                                        setFormData(prev => ({ ...prev, images: [...prev.images, url] }));
+                                                    }
+                                                }
+                                                e.target.value = ''; // Reset input
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                                <p className="text-[10px] text-gray-400">💡 Có thể chọn nhiều ảnh cùng lúc. Ảnh đầu tiên sẽ là ảnh đại diện.</p>
                             </div>
 
                             <div className="pt-4 flex gap-3">

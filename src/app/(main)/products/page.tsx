@@ -21,135 +21,83 @@ import { Suspense } from 'react';
 // Main content component that uses searchParams
 function ProductsContent() {
   const searchParams = useSearchParams();
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sizeOptions, setSizeOptions] = useState<Size[]>([]);
   const [colorOptions, setColorOptions] = useState<Color[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Filters from URL or State
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Sync with URL params
   useEffect(() => {
-    const urlSearch = searchParams.get('search');
-    if (urlSearch) setSearchQuery(urlSearch);
+    const cat = searchParams.get('category');
+    if (cat) setSelectedCategory(cat);
+    const search = searchParams.get('search');
+    if (search) setSearchQuery(search);
+  }, [searchParams]);
 
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchProducts({
+        category: selectedCategory || undefined,
+        search: searchQuery || undefined,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+      });
+      setProducts(data.items);
+      setTotalPages(data.totalPages);
+      setTotalItems(data.total);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial load for metadata
+  useEffect(() => {
     Promise.all([
-      fetchProducts(),
       fetchCategories(),
       fetchSizes(),
       fetchColors()
-    ]).then(([productsData, categoriesData, sizesData, colorsData]) => {
-      setAllProducts(productsData.items);
-      setCategories(categoriesData);
-      setSizeOptions(sizesData);
-      setColorOptions(colorsData);
-      setIsLoadingProducts(false);
+    ]).then(([catData, sizeData, colorData]) => {
+      setCategories(catData);
+      setSizeOptions(sizeData);
+      setColorOptions(colorData);
     });
-  }, [searchParams]);
+  }, []);
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let result = [...allProducts];
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.description?.toLowerCase().includes(query)
-      );
-    }
-
-    // Category filter
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) => {
-        const catSlug = p.category?.slug || '';
-        return selectedCategories.includes(catSlug);
-      });
-    }
-
-    // Size filter
-    if (selectedSizes.length > 0) {
-      result = result.filter((p) =>
-        p.sizes.some((s) => selectedSizes.includes(s.name))
-      );
-    }
-
-    // Color filter
-    if (selectedColors.length > 0) {
-      result = result.filter((p) =>
-        p.colors.some((c) => selectedColors.includes(c.hexCode))
-      );
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'popular':
-        result.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
-        break;
-      case 'newest':
-      default:
-        result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-        break;
-    }
-
-    return result;
-  }, [allProducts, searchQuery, selectedCategories, selectedSizes, selectedColors, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // Reload products when filters/page change
+  useEffect(() => {
+    loadProducts();
+  }, [currentPage, selectedCategory, searchQuery, sortBy]);
 
   const handleCategoryToggle = (slug: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug]
-    );
-    setCurrentPage(1);
-  };
-
-  const handleSizeToggle = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
-    );
-    setCurrentPage(1);
-  };
-
-  const handleColorToggle = (color: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-    );
+    setSelectedCategory(prev => prev === slug ? '' : slug);
     setCurrentPage(1);
   };
 
   const clearAllFilters = () => {
     setSearchQuery('');
-    setSelectedCategories([]);
+    setSelectedCategory('');
     setSelectedSizes([]);
     setSelectedColors([]);
     setSortBy('newest');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters =
-    searchQuery ||
-    selectedCategories.length > 0 ||
-    selectedSizes.length > 0 ||
-    selectedColors.length > 0;
+  const hasActiveFilters = searchQuery || selectedCategory || selectedSizes.length > 0 || selectedColors.length > 0;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
@@ -162,7 +110,7 @@ function ProductsContent() {
             TẤT CẢ SẢN PHẨM
           </h1>
           <p className="text-gray-400">
-            {filteredProducts.length} sản phẩm được tìm thấy
+            {totalItems} sản phẩm được tìm thấy
           </p>
         </div>
 
@@ -246,7 +194,6 @@ function ProductsContent() {
               <h3 className="text-white font-bold mb-4 uppercase tracking-wider">Danh mục</h3>
               <div className="space-y-2">
                 {categories.map((category) => {
-                  const productCount = allProducts.filter(p => p.category?.slug === category.slug).length;
                   return (
                     <label
                       key={category.id}
@@ -254,14 +201,14 @@ function ProductsContent() {
                     >
                       <input
                         type="checkbox"
-                        checked={selectedCategories.includes(category.slug)}
+                        checked={selectedCategory === category.slug}
                         onChange={() => handleCategoryToggle(category.slug)}
                         className="w-5 h-5 bg-[#1a1a1a] border border-[#2a2a2a] checked:bg-[#e60012] checked:border-[#e60012] cursor-pointer"
                       />
                       <span className="text-gray-400 group-hover:text-white transition-colors">
                         {category.name}
                       </span>
-                      <span className="text-gray-600 text-sm ml-auto">({productCount})</span>
+                      <span className="text-gray-600 text-sm ml-auto">({category.productCount})</span>
                     </label>
                   );
                 })}
@@ -275,7 +222,12 @@ function ProductsContent() {
                 {sizeOptions.map((size) => (
                   <button
                     key={size.id}
-                    onClick={() => handleSizeToggle(size.name)}
+                    onClick={() => {
+                      setSelectedSizes(prev =>
+                        prev.includes(size.name) ? prev.filter(s => s !== size.name) : [...prev, size.name]
+                      );
+                      setCurrentPage(1);
+                    }}
                     className={`w-12 h-10 border text-sm font-medium transition-colors ${selectedSizes.includes(size.name)
                       ? 'bg-[#e60012] border-[#e60012] text-white'
                       : 'border-[#2a2a2a] text-gray-400 hover:border-white hover:text-white'
@@ -294,7 +246,12 @@ function ProductsContent() {
                 {colorOptions.map((color) => (
                   <button
                     key={color.id}
-                    onClick={() => handleColorToggle(color.hex_code)}
+                    onClick={() => {
+                      setSelectedColors(prev =>
+                        prev.includes(color.hex_code) ? prev.filter(c => c !== color.hex_code) : [...prev, color.hex_code]
+                      );
+                      setCurrentPage(1);
+                    }}
                     className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColors.includes(color.hex_code)
                       ? 'border-[#e60012] scale-110'
                       : 'border-[#2a2a2a] hover:border-white'
@@ -317,10 +274,10 @@ function ProductsContent() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {paginatedProducts.length > 0 ? (
+            {products.length > 0 ? (
               <>
                 <div className="products-grid">
-                  {paginatedProducts.map((product) => (
+                  {products.map((product: Product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
