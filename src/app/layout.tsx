@@ -24,6 +24,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "vi_VN",
   },
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({
