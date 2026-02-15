@@ -18,7 +18,12 @@ import {
   createDesignOrder,
   uploadFile,
   getImageUrl,
-  formatPrice
+  formatPrice,
+  generateAIImageApi,
+  fetchAIUsage,
+  fetchAIHistory,
+  safetyCheckAI,
+  reviewAIImage,
 } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -67,7 +72,8 @@ import {
   Building2,
   Wallet,
   CreditCard,
-  CheckCircle2
+  CheckCircle2,
+  MessageSquare
 } from 'lucide-react';
 
 // Initial empty state
@@ -155,6 +161,7 @@ function StudioPageContent() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiUsage, setAiUsage] = useState({ used: 0, limit: 3, remaining: 3 });
   const [myProjects, setMyProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -210,6 +217,10 @@ function StudioPageContent() {
 
   // Preview modal state
   const [showPreview, setShowPreview] = useState(false);
+  const [showReviewPopup, setShowReviewPopup] = useState(false);
+  const [aiReview, setAiReview] = useState<any>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const lastReviewHashRef = useRef<string>('');
   const [previewMode, setPreviewMode] = useState<'3d' | '2d'>('3d');
   const [previewRotation, setPreviewRotation] = useState(0);
   const [isAutoRotating, setIsAutoRotating] = useState(true);
@@ -545,6 +556,32 @@ function StudioPageContent() {
       const front = await generatePreview('front');
       const back = await generatePreview('back');
       setPreviewImages({ front, back });
+
+      // Safety check on design before opening order modal
+      if (elements.length > 0 && front) {
+        try {
+          const smallBlob = await new Promise<Blob>((resolve) => {
+            const img = new window.Image();
+            img.onload = () => {
+              const c = document.createElement('canvas');
+              c.width = 512; c.height = 512;
+              const cx = c.getContext('2d')!;
+              cx.drawImage(img, 0, 0, 512, 512);
+              c.toBlob(b => resolve(b!), 'image/jpeg', 0.8);
+            };
+            img.src = front!;
+          });
+          const file = new File([smallBlob], 'preview.jpg', { type: 'image/jpeg' });
+          const safetyResult = await safetyCheckAI(file, token);
+          console.log('Safety check result:', safetyResult);
+          if (safetyResult && safetyResult.unsafe) {
+            showToast('Thiết kế của bạn chứa nội dung không phù hợp. Vui lòng chỉnh sửa trước khi đặt hàng.', 'error');
+            return;
+          }
+        } catch (safetyErr) {
+          console.warn('Safety check failed, proceeding:', safetyErr);
+        }
+      }
 
       setOrderForm(f => ({
         ...f,
@@ -962,35 +999,63 @@ function StudioPageContent() {
     img.src = getImageUrl(serverPath);
   };
 
-  // AI Generation Mock with Persona
-  const generateAIImage = async () => {
-    setIsGenerating(true);
-    // Simulate complex AI reasoning based on persona
-    await new Promise(resolve => setTimeout(resolve, 2500));
-
-    // Mock results curated based on style
-    const styleGallery: { [key: string]: string[] } = {
-      hiphop: [
-        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&h=400&fit=crop', // Abstract Dark
-        'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop', // Cyber gradient
-      ],
-      luxury: [
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop', // Clean minimalist
-        'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=400&fit=crop', // Tech logo
-      ],
-      simple: [
-        'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=400&h=400&fit=crop', // Geometric
-        'https://images.unsplash.com/photo-1614851012115-59269bb0d6e6?w=400&h=400&fit=crop', // Minimalist
-      ],
-      cyberpunk: [
-        'https://images.unsplash.com/photo-1635776062127-d379bfcbb9c8?w=400&h=400&fit=crop', // Glitch art
-        'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop', // Neon abstract
-      ]
+  // ── AI GENERATION (Real API) ─────────────────────────────────────
+  const buildAIPrompt = (): string => {
+    const styleMap: Record<string, string> = {
+      hiphop: 'streetwear hip-hop graffiti',
+      luxury: 'luxury minimalist elegant premium',
+      simple: 'clean simple geometric modern',
+      cyberpunk: 'cyberpunk neon glitch futuristic',
     };
+    const garmentName = selectedProduct?.name || 'T-shirt';
+    const parts: string[] = [`${garmentName} graphic design`];
+    if (aiPersona.style) parts.push(styleMap[aiPersona.style] || aiPersona.style);
+    if (aiPersona.zodiac) parts.push(`${aiPersona.zodiac} zodiac themed`);
+    if (aiPersona.personality) parts.push(aiPersona.personality.slice(0, 60));
+    if (aiPersona.customVibe) parts.push(aiPersona.customVibe.slice(0, 80));
+    parts.push('flat vector, transparent background, bold colors, print-ready, isolated graphic');
+    if (selectedProductColor) parts.push(`designed for ${selectedProductColor} colored garment`);
+    return parts.join(', ');
+  };
 
-    const results = styleGallery[aiPersona.style] || styleGallery.hiphop;
-    setGeneratedImages(results);
-    setIsGenerating(false);
+  const loadAIUsage = useCallback(async () => {
+    if (!token) return;
+    try {
+      const usage = await fetchAIUsage(token);
+      setAiUsage(usage);
+    } catch { /* ignore */ }
+  }, [token]);
+
+  const loadAIHistory = useCallback(async () => {
+    if (!token) return;
+    try {
+      const history = await fetchAIHistory(token);
+      if (history.length > 0) setGeneratedImages(history);
+    } catch { /* ignore */ }
+  }, [token]);
+
+  useEffect(() => { loadAIUsage(); loadAIHistory(); }, [loadAIUsage, loadAIHistory]);
+
+  const generateAIImage = async () => {
+    if (!token) { showToast('Vui lòng đăng nhập để sử dụng AI', 'error'); return; }
+    if (aiUsage.remaining <= 0) {
+      showToast(`Bạn đã hết ${aiUsage.limit} lượt tạo ảnh AI hôm nay. Thử lại vào ngày mai nhé!`, 'error');
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const prompt = buildAIPrompt();
+      const result = await generateAIImageApi(prompt, token);
+      setGeneratedImages(prev => [result.url, ...prev]);
+      setAiUsage({ used: result.used, limit: result.limit, remaining: result.remaining });
+      showToast(`Tạo ảnh AI thành công! Còn ${result.remaining} lượt`, 'success');
+      setShowAIModal(false);
+      setAiPersona({ personality: '', birthday: '', zodiac: '', style: 'hiphop', customVibe: '' });
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tạo ảnh AI', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const addAIElement = (url: string) => {
@@ -1014,7 +1079,7 @@ function StudioPageContent() {
       setElements([...elements, newElement]);
       setSelectedElementIds([newElement.id]);
     };
-    img.src = url;
+    img.src = getImageUrl(url);
     setShowAIModal(false);
   };
 
@@ -1670,9 +1735,55 @@ function StudioPageContent() {
             Tải xuống
           </button>
           <button
+            onClick={async () => {
+              if (!token) { showToast('Vui lòng đăng nhập', 'error'); return; }
+              if (elements.length === 0) { showToast('Bạn chưa thiết kế gì để nhận xét. Hãy thêm họa tiết trước!', 'error'); return; }
+              const currentHash = JSON.stringify(elements.map(e => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height, content: e.content, type: e.type })));
+              if (currentHash === lastReviewHashRef.current) { showToast('Thiết kế chưa thay đổi từ lần nhận xét trước. Hãy chỉnh sửa rồi thử lại!', 'info'); return; }
+              setIsReviewing(true);
+              setShowReviewPopup(true);
+              setAiReview(null);
+              try {
+                const preview = await generatePreview('front');
+                if (!preview) { showToast('Không thể tạo preview để nhận xét', 'error'); setIsReviewing(false); setShowReviewPopup(false); return; }
+                // Resize to 256x256 JPEG for faster review
+                const smallBlob = await new Promise<Blob>((resolve) => {
+                  const img = new window.Image();
+                  img.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = 256; c.height = 256;
+                    const cx = c.getContext('2d')!;
+                    cx.drawImage(img, 0, 0, 256, 256);
+                    c.toBlob(b => resolve(b!), 'image/jpeg', 0.7);
+                  };
+                  img.src = preview!;
+                });
+                const file = new File([smallBlob], 'design.jpg', { type: 'image/jpeg' });
+                const result = await reviewAIImage(file, token);
+                setAiReview(result);
+                lastReviewHashRef.current = currentHash;
+              } catch (err: any) {
+                console.error('Review error:', err);
+                showToast(err.message || 'Lỗi nhận xét AI', 'error');
+                setShowReviewPopup(false);
+              } finally {
+                setIsReviewing(false);
+              }
+            }}
+            disabled={isReviewing}
+            className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] text-gray-300 hover:text-white hover:border-[#e60012] transition-colors flex items-center gap-2 rounded disabled:opacity-50"
+          >
+            {isReviewing ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <MessageSquare size={16} />
+            )}
+            Nhận xét AI
+          </button>
+
+          <button
             onClick={() => {
               setShowAIModal(true);
-              setGeneratedImages([]);
             }}
             className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded"
           >
@@ -1988,7 +2099,7 @@ function StudioPageContent() {
                             onClick={() => addStickerElement(url)}
                             className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
                           >
-                            <img src={url} alt="AI" className="w-full h-full object-cover" />
+                            <img src={getImageUrl(url)} alt="AI" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
                               <Plus className="text-white" size={16} />
                             </div>
@@ -3300,6 +3411,7 @@ function StudioPageContent() {
                       <option value="Pisces">Song Ngư</option>
                     </select>
                   </div>
+                  <p className="text-[9px] text-gray-600 mt-1.5 italic">💡 Bỏ trống nếu bạn không muốn thiết kế theo cung hoàng đạo</p>
                 </div>
               </div>
 
@@ -3329,7 +3441,7 @@ function StudioPageContent() {
 
               {/* Custom Vibe */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Thông điệp muốn truyền tải</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Thông tin chi tiết</label>
                 <textarea
                   placeholder="Kể cho AI nghe thêm về màu sắc riêng của bạn..."
                   value={aiPersona.customVibe}
@@ -3338,20 +3450,46 @@ function StudioPageContent() {
                 />
               </div>
 
+              {/* Daily Usage Counter */}
+              <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-lg border border-[#2a2a2a]">
+                <span className="text-xs text-gray-400">🎨 Lượt tạo hôm nay</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    {Array.from({ length: aiUsage.limit }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-3 h-3 rounded-full transition-all ${i < aiUsage.used
+                          ? 'bg-[#e60012]'
+                          : 'bg-[#2a2a2a] border border-[#3a3a3a]'
+                          }`}
+                      />
+                    ))}
+                  </div>
+                  <span className={`text-sm font-black ${aiUsage.remaining > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {aiUsage.remaining}/{aiUsage.limit}
+                  </span>
+                </div>
+              </div>
+
               {/* Generation Button */}
               <button
                 onClick={generateAIImage}
-                disabled={isGenerating}
+                disabled={isGenerating || aiUsage.remaining <= 0}
                 className="btn-street w-full py-5 text-xl font-bold text-gray-400 uppercase tracking-widest block flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>
                     <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                    AI Đang phân tích cá tính...
+                    AI Đang tạo họa tiết...
+                  </>
+                ) : aiUsage.remaining <= 0 ? (
+                  <>
+                    Đã hết lượt hôm nay
+                    <Sparkles size={24} className="opacity-30" />
                   </>
                 ) : (
                   <>
-                    Xác nhận tạo họa tiết riêng
+                    Tạo họa tiết riêng ({aiUsage.remaining} lượt)
                     <Sparkles size={24} />
                   </>
                 )}
@@ -3376,7 +3514,7 @@ function StudioPageContent() {
                         onClick={() => addAIElement(url)}
                         className="group relative aspect-square bg-[#0a0a0a] border border-[#2a2a2a] rounded overflow-hidden hover:border-[#e60012] transition-all"
                       >
-                        <img src={url} alt="AI Result" className="w-full h-full object-cover transition-transform group-hover:scale-110 opacity-70 group-hover:opacity-100" />
+                        <img src={getImageUrl(url)} alt="AI Result" className="w-full h-full object-cover transition-transform group-hover:scale-110 opacity-70 group-hover:opacity-100" />
                         <div className="absolute inset-0 bg-[#e60012]/20 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all">
                           <Plus className="text-white mb-2" size={32} />
                           <span className="text-white text-[10px] font-black uppercase italic">Chọn họa tiết</span>
@@ -3387,6 +3525,58 @@ function StudioPageContent() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* AI Review Popup */}
+      {showReviewPopup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowReviewPopup(false)} />
+          <div className="relative bg-[#111] border border-[#2a2a2a] p-8 max-w-lg w-full rounded-2xl shadow-2xl">
+            <button
+              onClick={() => setShowReviewPopup(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-[#e60012]/20 rounded-full flex items-center justify-center">
+                <MessageSquare className="text-[#e60012]" size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase">Nhận xét AI</h3>
+                <p className="text-gray-500 text-[10px] uppercase tracking-widest">Phân tích thiết kế của bạn</p>
+              </div>
+            </div>
+            {isReviewing ? (
+              <div className="flex flex-col items-center py-12">
+                <div className="w-12 h-12 border-4 border-[#e60012]/30 border-t-[#e60012] rounded-full animate-spin mb-4" />
+                <p className="text-gray-400 text-sm">AI đang phân tích thiết kế...</p>
+              </div>
+            ) : aiReview ? (
+              <div className="space-y-4">
+                <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-5">
+                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {(() => {
+                      if (!aiReview) return 'Không có nội dung nhận xét';
+                      if (typeof aiReview === 'string') return aiReview;
+                      // Dig into nested response structures
+                      const text = aiReview.result?.response || aiReview.result || aiReview.response || aiReview.review || aiReview.message || aiReview.error;
+                      if (typeof text === 'string' && text.trim()) return text;
+                      if (typeof text === 'object' && text) {
+                        const inner = text.response || text.result || text.message;
+                        if (typeof inner === 'string' && inner.trim()) return inner;
+                      }
+                      const json = JSON.stringify(aiReview);
+                      return json === '{}' || json === 'null' ? 'AI không trả về nhận xét. Vui lòng thử lại.' : json;
+                    })()}
+                  </p>
+                </div>
+                <p className="text-[9px] text-gray-600 italic text-center">Đây là nhận xét từ AI, mang tính chất tham khảo</p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Không có dữ liệu nhận xét</p>
+            )}
           </div>
         </div>
       )}

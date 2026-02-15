@@ -828,3 +828,59 @@ export async function updateSettings(data: Record<string, any>, token: string) {
   if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Lỗi cập nhật cài đặt'); }
   return await res.json();
 }
+
+// ── AI GENERATION ──────────────────────────────────────────────────
+
+export async function generateAIImageApi(prompt: string, token: string) {
+  const res = await fetch(`${API_URL}/ai/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ prompt }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Lỗi tạo ảnh AI');
+  return data as { url: string; used: number; limit: number; remaining: number };
+}
+
+export async function fetchAIUsage(token: string) {
+  const res = await fetch(`${API_URL}/ai/usage`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return { used: 0, limit: 3, remaining: 3 };
+  return await res.json() as { used: number; limit: number; remaining: number };
+}
+
+export async function fetchAIHistory(token: string): Promise<string[]> {
+  const res = await fetch(`${API_URL}/ai/history`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+export async function reviewAIImage(file: File, token: string) {
+  const form = new FormData();
+  form.append('image', file);
+  const res = await fetch(`${API_URL}/ai/review`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'AI không phản hồi' }));
+    throw new Error(err.message || 'Lỗi review');
+  }
+  return await res.json();
+}
+
+export async function safetyCheckAI(file: File, token: string) {
+  const form = new FormData();
+  form.append('image', file);
+  const res = await fetch(`${API_URL}/ai/safety`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) return { unsafe: false };
+  return await res.json();
+}
