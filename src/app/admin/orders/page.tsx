@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { fetchAllOrdersAdmin, updateOrderStatus, formatPrice } from '@/lib/api';
 import {
     Package,
@@ -30,6 +31,7 @@ const statusOptions = ['pending', 'processing', 'shipped', 'delivered', 'cancell
 
 export default function AdminOrdersPage() {
     const { token } = useAuth();
+    const { showToast } = useToast();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -63,8 +65,9 @@ export default function AdminOrdersPage() {
             const success = await updateOrderStatus(orderId, nextStatus, token);
             if (success) {
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
+                showToast('Cập nhật trạng thái thành công!');
             } else {
-                alert('Cập nhật trạng thái thất bại. Vui lòng kiểm tra lại logic chuyển đổi.');
+                showToast('Cập nhật trạng thái thất bại. Vui lòng kiểm tra lại logic chuyển đổi.', 'error');
             }
         } catch (error) {
             console.error('Update failed', error);
@@ -113,8 +116,8 @@ export default function AdminOrdersPage() {
         <div className="max-w-[1600px] mx-auto space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quản lý Đơn hàng</h1>
-                    <p className="text-sm text-gray-500 mt-1">Sắp xếp, theo dõi và cập nhật trạng thái đơn hàng của khách hàng.</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">Đơn hàng</h1>
+                    <p className="text-gray-500 mt-1">Sắp xếp, theo dõi và cập nhật trạng thái đơn hàng của khách hàng.</p>
                 </div>
 
                 <div className="flex items-center gap-3">

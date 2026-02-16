@@ -20,6 +20,8 @@ import {
 } from '@/lib/api';
 import { Size, Color, MaterialType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useToast } from '@/components/ui/Toast';
 
 type TabType = 'sizes' | 'colors' | 'materials';
 
@@ -33,6 +35,11 @@ export default function AdminAttributesPage() {
     const [formData, setFormData] = useState<any>({ name: '', hex_code: '' });
     const [saving, setSaving] = useState(false);
     const { token } = useAuth();
+    const { showToast } = useToast();
+
+    // Delete confirm state
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: '', name: '' });
+    const [deleting, setDeleting] = useState(false);
 
     const loadData = async () => {
         setLoading(true);
@@ -96,17 +103,31 @@ export default function AdminAttributesPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!token || !confirm('Bạn có chắc chắn muốn xóa thuộc tính này?')) return;
+    const handleDeleteClick = (id: string, name: string) => {
+        setDeleteModal({ isOpen: true, id, name });
+    };
+
+    const confirmDelete = async () => {
+        if (!token || !deleteModal.id) return;
+        setDeleting(true);
         try {
             let success = false;
-            if (activeTab === 'sizes') success = await deleteSize(id, token);
-            else if (activeTab === 'colors') success = await deleteColor(id, token);
-            else if (activeTab === 'materials') success = await deleteMaterial(id, token);
+            if (activeTab === 'sizes') success = await deleteSize(deleteModal.id, token);
+            else if (activeTab === 'colors') success = await deleteColor(deleteModal.id, token);
+            else if (activeTab === 'materials') success = await deleteMaterial(deleteModal.id, token);
 
-            if (success) loadData();
+            if (success) {
+                showToast('Xóa thành công!');
+                loadData();
+            } else {
+                showToast('Xóa thất bại', 'error');
+            }
         } catch (error) {
             console.error('Error deleting attribute:', error);
+            showToast('Lỗi khi xóa', 'error');
+        } finally {
+            setDeleting(false);
+            setDeleteModal({ isOpen: false, id: '', name: '' });
         }
     };
 
@@ -114,8 +135,8 @@ export default function AdminAttributesPage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Quản lý Thuộc tính</h1>
-                    <p className="text-gray-500 text-sm">Quản lý Sizes, Màu sắc và Chất liệu của sản phẩm</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">Thuộc tính</h1>
+                    <p className="text-gray-500 mt-1">Quản lý Sizes, Màu sắc và Chất liệu của sản phẩm</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
@@ -224,7 +245,7 @@ export default function AdminAttributesPage() {
                                                     <Pencil size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(item.id)}
+                                                    onClick={() => handleDeleteClick(item.id, item.name)}
                                                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Xóa"
                                                 >
@@ -339,6 +360,17 @@ export default function AdminAttributesPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title={`Xóa ${activeTab === 'sizes' ? 'Size' : activeTab === 'colors' ? 'Màu' : 'Chất liệu'}`}
+                message={`Bạn có chắc chắn muốn xóa "${deleteModal.name}"? Hành động này không thể hoàn tác.`}
+                confirmText="Xóa mục"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteModal({ isOpen: false, id: '', name: '' })}
+                type="danger"
+                isLoading={deleting}
+            />
         </div>
     );
 }

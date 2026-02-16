@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { fetchAllUsersAdmin, toggleBlockUser, updateUserRole } from '@/lib/api';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
     Search, Shield, ShieldOff, Users, Mail, Calendar, Crown, User as UserIcon, Ban, CheckCircle2
 } from 'lucide-react';
@@ -16,6 +17,15 @@ export default function AdminUsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState<'all' | 'user' | 'admin'>('all');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    // Confirm modals
+    const [confirmAction, setConfirmAction] = useState<{
+        isOpen: boolean;
+        type: 'block' | 'role';
+        userId: string;
+        userName: string;
+        data?: any;
+    }>({ isOpen: false, type: 'block', userId: '', userName: '' });
 
     const loadUsers = async () => {
         if (!token) return;
@@ -32,9 +42,11 @@ export default function AdminUsersPage() {
 
     useEffect(() => { loadUsers(); }, [token]);
 
-    const handleToggleBlock = async (userId: string) => {
-        if (!token) return;
+    const executeToggleBlock = async () => {
+        const { userId } = confirmAction;
+        if (!token || !userId) return;
         setActionLoading(userId);
+        setConfirmAction(prev => ({ ...prev, isOpen: false }));
         try {
             const res = await toggleBlockUser(userId, token);
             showToast(res.message);
@@ -46,9 +58,11 @@ export default function AdminUsersPage() {
         }
     };
 
-    const handleRoleChange = async (userId: string, newRole: string) => {
-        if (!token) return;
+    const executeRoleChange = async () => {
+        const { userId, data: newRole } = confirmAction;
+        if (!token || !userId || !newRole) return;
         setActionLoading(userId);
+        setConfirmAction(prev => ({ ...prev, isOpen: false }));
         try {
             const res = await updateUserRole(userId, newRole, token);
             showToast(res.message);
@@ -203,7 +217,13 @@ export default function AdminUsersPage() {
                                                 <div className="flex items-center gap-2">
                                                     {!isSelf && u.role !== 'admin' && (
                                                         <button
-                                                            onClick={() => handleToggleBlock(u.id)}
+                                                            onClick={() => setConfirmAction({
+                                                                isOpen: true,
+                                                                type: 'block',
+                                                                userId: u.id,
+                                                                userName: u.full_name || u.email,
+                                                                data: u.is_blocked
+                                                            })}
                                                             disabled={actionLoading === u.id}
                                                             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${u.is_blocked
                                                                 ? 'bg-green-50 text-green-700 hover:bg-green-100'
@@ -222,7 +242,13 @@ export default function AdminUsersPage() {
                                                     {!isSelf && !u.is_blocked && (
                                                         <select
                                                             value={u.role}
-                                                            onChange={e => handleRoleChange(u.id, e.target.value)}
+                                                            onChange={e => setConfirmAction({
+                                                                isOpen: true,
+                                                                type: 'role',
+                                                                userId: u.id,
+                                                                userName: u.full_name || u.email,
+                                                                data: e.target.value
+                                                            })}
                                                             disabled={actionLoading === u.id}
                                                             className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                                         >
@@ -243,6 +269,19 @@ export default function AdminUsersPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmAction.isOpen}
+                title={confirmAction.type === 'block'
+                    ? (confirmAction.data ? 'Mở khóa người dùng?' : 'Khóa người dùng?')
+                    : 'Thay đổi quyền hạn?'}
+                message={confirmAction.type === 'block'
+                    ? `Bạn có chắc chắn muốn ${confirmAction.data ? 'mở khóa' : 'khóa'} tài khoản của "${confirmAction.userName}"?`
+                    : `Bạn có chắc chắn muốn thay đổi quyền hạn của "${confirmAction.userName}" thành ${confirmAction.data?.toUpperCase()}?`}
+                onConfirm={confirmAction.type === 'block' ? executeToggleBlock : executeRoleChange}
+                onCancel={() => setConfirmAction(prev => ({ ...prev, isOpen: false }))}
+                type={confirmAction.type === 'block' ? (confirmAction.data ? 'success' : 'danger') : 'warning'}
+            />
         </div>
     );
 }

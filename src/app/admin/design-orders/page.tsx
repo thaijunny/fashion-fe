@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import {
     Search, Eye, Download, ChevronDown, Clock, CheckCircle2, Printer, Truck, XCircle, Palette, Package
 } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const statusOptions = [
     { value: 'pending', label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700' },
@@ -28,6 +29,14 @@ export default function AdminDesignOrdersPage() {
     // Preview modal
     const [previewOrder, setPreviewOrder] = useState<any>(null);
 
+    // Confirm modal
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; orderId: string; nextStatus: string }>({
+        isOpen: false,
+        orderId: '',
+        nextStatus: ''
+    });
+    const [updating, setUpdating] = useState(false);
+
     const loadOrders = async () => {
         if (!token) return;
         setLoading(true);
@@ -43,14 +52,24 @@ export default function AdminDesignOrdersPage() {
 
     useEffect(() => { loadOrders(); }, [token]);
 
-    const handleStatusChange = async (orderId: string, newStatus: string) => {
-        if (!token) return;
+    const initiateStatusChange = (orderId: string, nextStatus: string) => {
+        setConfirmModal({ isOpen: true, orderId, nextStatus });
+    };
+
+    const confirmStatusChange = async () => {
+        const { orderId, nextStatus } = confirmModal;
+        if (!token || !orderId || !nextStatus) return;
+
+        setUpdating(true);
         try {
-            await updateDesignOrderStatusAdmin(orderId, newStatus, token);
+            await updateDesignOrderStatusAdmin(orderId, nextStatus, token);
             showToast('Cập nhật trạng thái thành công!');
             loadOrders();
         } catch (e: any) {
             showToast(e.message || 'Lỗi cập nhật', 'error');
+        } finally {
+            setUpdating(false);
+            setConfirmModal({ isOpen: false, orderId: '', nextStatus: '' });
         }
     };
 
@@ -167,7 +186,7 @@ export default function AdminDesignOrdersPage() {
                                             <td className="px-6 py-4">
                                                 <select
                                                     value={order.status}
-                                                    onChange={e => handleStatusChange(order.id, e.target.value)}
+                                                    onChange={e => initiateStatusChange(order.id, e.target.value)}
                                                     className={`px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer ${st.color}`}
                                                 >
                                                     {statusOptions.map(s => (
@@ -269,6 +288,16 @@ export default function AdminDesignOrdersPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Thay đổi trạng thái?"
+                message={confirmModal.nextStatus ? `Bạn có chắc chắn muốn chuyển đơn thiết kế sang trạng thái "${statusOptions.find(s => s.value === confirmModal.nextStatus)?.label}"?` : ''}
+                onConfirm={confirmStatusChange}
+                onCancel={() => setConfirmModal({ isOpen: false, orderId: '', nextStatus: '' })}
+                isLoading={updating}
+                type="info"
+            />
         </div>
     );
 }

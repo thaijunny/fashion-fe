@@ -91,11 +91,11 @@ export default function AdminSettingsPage() {
         <div className="space-y-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <SettingsIcon className="text-indigo-600" />
-                        Cấu hình hệ thống
+                    <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter flex items-center gap-2">
+                        <SettingsIcon className="text-indigo-600" size={32} />
+                        Cấu hình
                     </h1>
-                    <p className="text-gray-500 text-sm">Quản lý các thông tin chung và hiển thị trên website.</p>
+                    <p className="text-gray-500 mt-1">Quản lý các thông tin chung và hiển thị trên website.</p>
                 </div>
                 <button
                     onClick={handleSave}

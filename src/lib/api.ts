@@ -881,6 +881,19 @@ export async function safetyCheckAI(file: File, token: string) {
     headers: { 'Authorization': `Bearer ${token}` },
     body: form,
   });
-  if (!res.ok) return { unsafe: false };
   return await res.json();
+}
+
+// ── DASHBOARD APIs ──────────────────────────────────────────────────
+
+export async function fetchDashboardStats(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/dashboard/stats`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }

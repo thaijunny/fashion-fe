@@ -250,8 +250,8 @@ export default function AdminProductsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Quản lý sản phẩm</h1>
-                    <p className="text-gray-500 text-sm">Quản lý kho hàng và hiển thị sản phẩm của bạn.</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">Sản phẩm</h1>
+                    <p className="text-gray-500 mt-1">Quản lý kho hàng và hiển thị sản phẩm của bạn.</p>
                 </div>
                 <button
                     onClick={() => openModal()}

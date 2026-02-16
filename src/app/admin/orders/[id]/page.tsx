@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchOrderById, updateOrderStatus, formatPrice, getImageUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,6 +37,7 @@ const statusOptions = ['pending', 'processing', 'shipped', 'delivered', 'cancell
 export default function AdminOrderDetailPage() {
     const { id } = useParams();
     const { token } = useAuth();
+    const { showToast } = useToast();
     const router = useRouter();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -63,8 +65,9 @@ export default function AdminOrderDetailPage() {
             const success = await updateOrderStatus(order.id, newStatus, token);
             if (success) {
                 setOrder({ ...order, status: newStatus });
+                showToast('Cập nhật trạng thái thành công!');
             } else {
-                alert('Cập nhật trạng thái thất bại.');
+                showToast('Cập nhật trạng thái thất bại.', 'error');
             }
         } catch (error) {
             console.error('Status update failed', error);
@@ -115,7 +118,7 @@ export default function AdminOrderDetailPage() {
                 </button>
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">#{(order.id as string).split('-')[0].toUpperCase()}</h1>
+                        <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">#{(order.id as string).split('-')[0].toUpperCase()}</h1>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${status.bgColor} ${status.color}`}>
                             {status.label}
                         </div>
