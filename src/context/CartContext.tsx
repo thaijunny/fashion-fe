@@ -39,10 +39,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? '/api'
-    : 'http://localhost:5000/api');
+import { API_URL } from '@/lib/api';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();

@@ -1,10 +1,32 @@
 import { Product, Category, Size, Color, MaterialType } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? '/api'
-    : 'http://localhost:5000/api');
-const SERVER_URL = API_URL.startsWith('/')
+// Robust API URL resolution
+export function getApiUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (typeof window === 'undefined') {
+    return envUrl || 'http://localhost:5000/api';
+  }
+
+  const { hostname, protocol } = window.location;
+
+  // Fallback to relative path if we're on production domain to avoid Mixed Content
+  if ((hostname === 'untyped.com.vn' || hostname === 'www.untyped.com.vn') && protocol === 'https:') {
+    return '/api';
+  }
+
+  // If we are not on localhost, and env URL is insecure or an IP, force relative
+  if (hostname !== 'localhost') {
+    if (!envUrl || envUrl.includes('14.225.205.22') || (envUrl.startsWith('http://') && protocol === 'https:')) {
+      return '/api';
+    }
+  }
+
+  return envUrl || 'http://localhost:5000/api';
+}
+
+export const API_URL = getApiUrl();
+export const SERVER_URL = API_URL.startsWith('/')
   ? (typeof window !== 'undefined' ? window.location.origin : '')
   : API_URL.replace(/\/api$/, '');
 
@@ -12,7 +34,10 @@ const SERVER_URL = API_URL.startsWith('/')
 export function getImageUrl(path: string): string {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return `${SERVER_URL}${path}`;
+
+  // If SERVER_URL is empty (SSR), try to fallback gracefully
+  const baseUrl = SERVER_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  return `${baseUrl}${path}`;
 }
 
 // Upload a file to the server, returns the URL path
