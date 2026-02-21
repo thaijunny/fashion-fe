@@ -256,13 +256,13 @@ export default function HomePage() {
 
             <div className="relative aspect-square">
               {/* Mockup Preview */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto mb-4 rounded-xl bg-[#e60012]/20 flex items-center justify-center">
-                    <Sparkles className="w-16 h-16 text-[#e60012]" />
-                  </div>
-                  <p className="text-gray-400">Design Studio Preview</p>
-                </div>
+              <div className="absolute inset-0 rounded-lg overflow-hidden">
+                <img
+                  src={settings.studio_image ? getImageUrl(settings.studio_image) : '/images/studio-demo.png'}
+                  alt="Design Studio Preview"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               </div>
               {/* Decorative Elements */}
               <div className="absolute -top-4 -right-4 w-24 h-24 border-2 border-[#e60012] opacity-50" />

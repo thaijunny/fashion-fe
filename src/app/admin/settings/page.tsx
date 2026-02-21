@@ -16,7 +16,8 @@ import {
     Instagram,
     Image as ImageIcon,
     Loader2,
-    Upload
+    Upload,
+    FileText
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -34,6 +35,8 @@ export default function AdminSettingsPage() {
         youtube_link: '',
         instagram_link: '',
         banner_image: '',
+        studio_image: '',
+        about_content: '',
     });
 
     useEffect(() => {
@@ -64,15 +67,15 @@ export default function AdminSettingsPage() {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'banner_image' | 'studio_image' = 'banner_image') => {
         const file = e.target.files?.[0];
         if (!file || !token) return;
 
         try {
             const url = await uploadFile(file, token);
             if (url) {
-                setSettings(prev => ({ ...prev, banner_image: url }));
-                showToast('Đã tải lên ảnh banner');
+                setSettings(prev => ({ ...prev, [field]: url }));
+                showToast(field === 'banner_image' ? 'Đã tải lên ảnh banner' : 'Đã tải lên ảnh Studio');
             }
         } catch (error) {
             showToast('Tải ảnh thất bại', 'error');
@@ -251,6 +254,61 @@ export default function AdminSettingsPage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* About Page Content - Full Width */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-pink-50 text-pink-600 rounded-lg">
+                        <ImageIcon size={20} />
+                    </div>
+                    <h3 className="font-bold text-gray-800">Ảnh Design Studio (Trang chủ)</h3>
+                </div>
+                <div className="relative group aspect-[16/9] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-200 flex flex-col items-center justify-center transition-all hover:bg-gray-200/50 hover:border-pink-300">
+                    {settings.studio_image ? (
+                        <>
+                            <Image
+                                src={getImageUrl(settings.studio_image)}
+                                alt="Studio Image"
+                                fill
+                                className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <label className="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-bold cursor-pointer flex items-center gap-2 hover:bg-pink-600 hover:text-white transition-all">
+                                    <Upload size={16} />
+                                    Thay đổi ảnh
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'studio_image')} />
+                                </label>
+                            </div>
+                        </>
+                    ) : (
+                        <label className="flex flex-col items-center cursor-pointer">
+                            <div className="p-3 bg-white rounded-full shadow-sm text-gray-400 mb-2 group-hover:text-pink-600 group-hover:scale-110 transition-all">
+                                <Upload size={24} />
+                            </div>
+                            <span className="text-sm font-medium text-gray-500 group-hover:text-pink-600">Tải lên ảnh Studio</span>
+                            <span className="text-[10px] text-gray-400 mt-1">Khuyên dùng: 800x800 px</span>
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'studio_image')} />
+                        </label>
+                    )}
+                </div>
+            </div>
+
+            {/* About Page Content - Full Width */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-violet-50 text-violet-600 rounded-lg">
+                        <FileText size={20} />
+                    </div>
+                    <h3 className="font-bold text-gray-800">Nội dung trang &quot;Về Chúng Tôi&quot;</h3>
+                </div>
+                <p className="text-xs text-gray-500">Nội dung sẽ hiển thị trên trang /about. Mỗi đoạn văn cách nhau bằng 1 dòng trống.</p>
+                <textarea
+                    value={settings.about_content}
+                    onChange={(e) => setSettings({ ...settings, about_content: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm min-h-[250px] bg-gray-50/50 font-mono"
+                    placeholder="Nhập nội dung giới thiệu về thương hiệu..."
+                />
             </div>
         </div>
     );

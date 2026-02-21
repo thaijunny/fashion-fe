@@ -15,12 +15,21 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "UNTYPED CLOTHING | Streetwear Việt Nam",
+  metadataBase: new URL('https://untyped.com.vn'),
+  title: {
+    default: "UNTYPED CLOTHING | Streetwear Việt Nam",
+    template: "%s | UNTYPED CLOTHING",
+  },
   description: "Thương hiệu thời trang đường phố dành cho những ai dám khác biệt. Không giới hạn, không khuôn mẫu - chỉ có phong cách của riêng bạn.",
-  keywords: ["streetwear", "thời trang đường phố", "quần áo", "untyped", "việt nam", "design studio"],
+  keywords: ["streetwear", "thời trang đường phố", "quần áo", "untyped", "việt nam", "design studio", "thời trang", "untyped clothing"],
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     title: "UNTYPED CLOTHING | Streetwear Việt Nam",
     description: "Thương hiệu thời trang đường phố dành cho những ai dám khác biệt.",
+    url: 'https://untyped.com.vn',
+    siteName: 'UNTYPED CLOTHING',
     type: "website",
     locale: "vi_VN",
   },
