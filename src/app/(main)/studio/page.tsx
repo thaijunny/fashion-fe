@@ -25,6 +25,7 @@ import {
   safetyCheckAI,
   reviewAIImage,
 } from '@/lib/api';
+import { useSettings } from '@/context/SettingsContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -128,6 +129,7 @@ const getRotatedCursor = (handle: string, rotation: number = 0): string => {
 
 function StudioPageContent() {
   const { user, token, loading: authLoading } = useAuth();
+  const { settings } = useSettings();
   const { showToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -170,10 +172,18 @@ function StudioPageContent() {
     quantity: 1,
     full_name: '',
     phone_number: '',
-    shipping_address: '',
+    province: '',
+    district: '',
+    ward: '',
+    street: '',
     note: '',
     payment_method: 'cod',
   });
+  const [addrProvinces, setAddrProvinces] = useState<{ code: number; name: string }[]>([]);
+  const [addrDistricts, setAddrDistricts] = useState<{ code: number; name: string }[]>([]);
+  const [addrWards, setAddrWards] = useState<{ code: number; name: string }[]>([]);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const [preOrderCode, setPreOrderCode] = useState('');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -514,23 +524,44 @@ function StudioPageContent() {
         quantity: orderForm.quantity,
         full_name: orderForm.full_name,
         phone_number: orderForm.phone_number,
-        shipping_address: orderForm.shipping_address,
+        shipping_address: `${orderForm.street}, ${orderForm.ward}, ${orderForm.district}, ${orderForm.province}`,
         note: orderForm.note,
         payment_method: orderForm.payment_method,
         total_amount: totalAmount,
+        order_code: preOrderCode,
       };
 
-      await createDesignOrder(orderData, token);
+      const result = await createDesignOrder(orderData, token);
+      const orderId = result.order_code || preOrderCode;
       setShowOrderModal(false);
 
       // Reset previews after ordering
       setPreviewImages({ front: null, back: null });
 
+      // Build success message with VietQR if needed
+      const isBank = orderForm.payment_method === 'bank_transfer';
+      const vietQRUrl = isBank && settings.bank_id && settings.bank_account
+        ? `https://img.vietqr.io/image/${settings.bank_id}-${settings.bank_account}-compact.png?amount=${totalAmount}&addInfo=UNTYPED ${orderId}&accountName=${encodeURIComponent(settings.bank_owner || '')}`
+        : null;
+
       setConfirmModal({
         isOpen: true,
         isAlert: true,
         title: 'ĐẶT HÀNG THÀNH CÔNG!',
-        message: 'Cảm ơn bạn! Đơn hàng thiết kế của bạn đã được tiếp nhận. Chúng tôi sẽ sớm liên hệ xác nhận.',
+        message: (
+          <div className="space-y-4">
+            <p className="text-gray-400 leading-relaxed font-medium">
+              Cảm ơn bạn! Đơn hàng <span className="text-white font-bold">#{orderId}</span> đã được tiếp nhận.
+              {isBank ? ' Vui lòng thanh toán qua QR bên dưới để hoàn tất.' : ' Chúng tôi sẽ sớm liên hệ xác nhận.'}
+            </p>
+            {vietQRUrl && (
+              <div className="bg-white p-4 rounded-xl inline-block mx-auto border-4 border-[#e60012]/20">
+                <img src={vietQRUrl} alt="VietQR" className="w-56 h-56 object-contain" />
+                <p className="text-[10px] font-bold text-gray-900 mt-2 uppercase tracking-tighter italic">Nội dung: UNTYPED {orderId}</p>
+              </div>
+            )}
+          </div>
+        ) as any,
         onConfirm: () => {
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
           router.push('/design-orders');
@@ -588,6 +619,18 @@ function StudioPageContent() {
         full_name: user?.full_name || '',
         payment_method: 'cod'
       }));
+      // Generate order code for QR display
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = 'UT';
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      setPreOrderCode(code);
+      // Load provinces for address dropdown
+      if (addrProvinces.length === 0) {
+        fetch('https://provinces.open-api.vn/api/p/')
+          .then(r => r.json())
+          .then(data => setAddrProvinces(data))
+          .catch(() => { });
+      }
       setShowOrderModal(true);
     } catch (err) {
       showToast('Không thể tạo bản xem trước. Vui lòng thử lại.', 'error');
@@ -3700,14 +3743,65 @@ function StudioPageContent() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Địa chỉ giao hàng</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <select
+                      value={orderForm.province}
+                      onChange={e => {
+                        setOrderForm(f => ({ ...f, province: e.target.value, district: '', ward: '' }));
+                        setAddrDistricts([]);
+                        setAddrWards([]);
+                        const p = addrProvinces.find(x => x.name === e.target.value);
+                        if (p) {
+                          setAddrLoading(true);
+                          fetch(`https://provinces.open-api.vn/api/p/${p.code}?depth=2`)
+                            .then(r => r.json())
+                            .then(d => setAddrDistricts(d.districts))
+                            .finally(() => setAddrLoading(false));
+                        }
+                      }}
+                      className="w-full bg-[#050505] border border-[#222] px-3 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none"
+                    >
+                      <option value="">Tỉnh/Thành phố</option>
+                      {addrProvinces.map(p => <option key={p.code} value={p.name}>{p.name}</option>)}
+                    </select>
+                    <select
+                      value={orderForm.district}
+                      onChange={e => {
+                        setOrderForm(f => ({ ...f, district: e.target.value, ward: '' }));
+                        setAddrWards([]);
+                        const d = addrDistricts.find(x => x.name === e.target.value);
+                        if (d) {
+                          setAddrLoading(true);
+                          fetch(`https://provinces.open-api.vn/api/d/${d.code}?depth=2`)
+                            .then(r => r.json())
+                            .then(data => setAddrWards(data.wards))
+                            .finally(() => setAddrLoading(false));
+                        }
+                      }}
+                      disabled={!orderForm.province}
+                      className="w-full bg-[#050505] border border-[#222] px-3 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none disabled:opacity-40"
+                    >
+                      <option value="">Quận/Huyện</option>
+                      {addrDistricts.map(d => <option key={d.code} value={d.name}>{d.name}</option>)}
+                    </select>
+                    <select
+                      value={orderForm.ward}
+                      onChange={e => setOrderForm(f => ({ ...f, ward: e.target.value }))}
+                      disabled={!orderForm.district}
+                      className="w-full bg-[#050505] border border-[#222] px-3 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none disabled:opacity-40"
+                    >
+                      <option value="">Phường/Xã</option>
+                      {addrWards.map(w => <option key={w.code} value={w.name}>{w.name}</option>)}
+                    </select>
+                  </div>
                   <div className="relative">
-                    <MapPin size={14} className="absolute left-3 top-4 text-gray-600" />
-                    <textarea
-                      placeholder="Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành..."
-                      value={orderForm.shipping_address}
-                      onChange={e => setOrderForm(f => ({ ...f, shipping_address: e.target.value }))}
-                      rows={3}
-                      className="w-full bg-[#050505] border border-[#222] pl-10 pr-4 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none resize-none"
+                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="text"
+                      placeholder="Số nhà, tên đường..."
+                      value={orderForm.street}
+                      onChange={e => setOrderForm(f => ({ ...f, street: e.target.value }))}
+                      className="w-full bg-[#050505] border border-[#222] pl-10 pr-4 py-4 text-white text-xs focus:border-[#e60012] transition-colors outline-none"
                     />
                   </div>
                 </div>
@@ -3748,15 +3842,28 @@ function StudioPageContent() {
                   </div>
                 </div>
 
-                {/* Bank Transfer Info */}
+                {/* Bank Transfer Info + QR */}
                 {orderForm.payment_method === 'bank_transfer' && (
-                  <div className="bg-[#111] border border-[#e60012]/20 p-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="bg-[#111] border border-[#e60012]/20 p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <h4 className="text-[10px] font-black text-[#e60012] uppercase tracking-widest">Thông tin chuyển khoản</h4>
                     <div className="space-y-1">
-                      <p className="text-xs text-white">VCB: <span className="font-bold">1023456789</span></p>
-                      <p className="text-xs text-white">Chủ thẻ: <span className="font-bold">NGUYEN VAN A</span></p>
-                      <p className="text-xs text-gray-400">Nội dung: <span className="text-[#e60012] font-bold">Thanh toan don hang thiet ke</span></p>
+                      <p className="text-xs text-white">Ngân hàng: <span className="font-bold">{settings.bank_id || 'Chưa cấu hình'}</span></p>
+                      <p className="text-xs text-white">Số tài khoản: <span className="font-bold font-mono">{settings.bank_account || 'Chưa cấu hình'}</span></p>
+                      <p className="text-xs text-white">Chủ TK: <span className="font-bold uppercase">{settings.bank_owner || 'Chưa cấu hình'}</span></p>
+                      <p className="text-xs text-gray-400">Số tiền: <span className="text-[#e60012] font-bold">{formatPrice((selectedProduct?.size_prices?.[selectedSize] || selectedProduct?.base_price || 0) * orderForm.quantity)}</span></p>
                     </div>
+                    {settings.bank_id && settings.bank_account && (
+                      <div className="flex flex-col items-center pt-2">
+                        <div className="bg-white p-3 rounded-lg">
+                          <img
+                            src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.bank_account}-compact.png?amount=${(selectedProduct?.size_prices?.[selectedSize] || selectedProduct?.base_price || 0) * orderForm.quantity}&addInfo=UNTYPED ${preOrderCode}&accountName=${encodeURIComponent(settings.bank_owner || '')}`}
+                            alt="VietQR"
+                            className="w-44 h-44 object-contain"
+                          />
+                        </div>
+                        <p className="text-[10px] text-gray-600 mt-2">Quét mã QR để chuyển khoản nhanh</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3773,7 +3880,7 @@ function StudioPageContent() {
 
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={isOrdering || !orderForm.full_name || !orderForm.phone_number || !orderForm.shipping_address}
+                    disabled={isOrdering || !orderForm.full_name || !orderForm.phone_number || !orderForm.province || !orderForm.district || !orderForm.street}
                     className="btn-street px-12 py-5 text-base flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95"
                   >
                     {isOrdering ? (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatPrice, getImageUrl, API_URL } from '@/lib/api';
+import { useSettings } from '@/context/SettingsContext';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -30,6 +31,15 @@ export default function CheckoutPage() {
     const { items, total, itemCount, clearCart } = useCart();
     const { user, token } = useAuth();
     const router = useRouter();
+    const { settings } = useSettings();
+
+    // Pre-generate order code so QR shows it before ordering
+    const [preOrderCode] = useState(() => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = 'UT';
+        for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    });
 
     const [formData, setFormData] = useState({
         full_name: '',
@@ -49,6 +59,8 @@ export default function CheckoutPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [orderCode, setOrderCode] = useState<string | null>(null);
+    const [savedTotal, setSavedTotal] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
@@ -161,14 +173,17 @@ export default function CheckoutPage() {
                     phone_number: formData.phone_number,
                     shipping_address: fullAddress,
                     payment_method: formData.payment_method,
-                    total_amount: grandTotal
+                    total_amount: grandTotal,
+                    order_code: preOrderCode
                 })
             });
 
             const data = await res.json();
             if (res.ok) {
+                setSavedTotal(grandTotal);
                 setIsSuccess(true);
                 setOrderId(data.order_id);
+                setOrderCode(data.order_code || preOrderCode);
                 clearCart(); // Clear cart after success
             } else {
                 setError(data.message || 'Đặt hàng thất bại. Vui lòng thử lại.');
@@ -188,7 +203,7 @@ export default function CheckoutPage() {
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase tracking-tighter italic">Đặt hàng thành công!</h1>
                 <p className="text-gray-400 mb-2 max-w-md mx-auto">Cảm ơn bạn đã tin tưởng <strong>UNTYPED CLOTHING</strong>.</p>
-                <p className="text-gray-500 text-sm mb-8">Mã đơn hàng: <span className="text-white font-mono font-bold uppercase">{orderId}</span></p>
+                <p className="text-gray-500 text-sm mb-8">Mã đơn hàng: <span className="text-white font-mono font-bold uppercase">{orderCode}</span></p>
 
                 <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl mb-12">
                     <div className="bg-[#111] border border-[#2a2a2a] p-8 text-left">
@@ -215,25 +230,38 @@ export default function CheckoutPage() {
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between border-b border-[#222] pb-2">
                                     <span className="text-gray-500">Ngân hàng:</span>
-                                    <span className="text-white font-bold">Vietcombank</span>
+                                    <span className="text-white font-bold">{settings.bank_id || 'Chưa cấu hình'}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-2">
                                     <span className="text-gray-500">Số tài khoản:</span>
-                                    <span className="text-white font-bold font-mono">1023456789</span>
+                                    <span className="text-white font-bold font-mono">{settings.bank_account || 'Chưa cấu hình'}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-2">
                                     <span className="text-gray-500">Chủ tài khoản:</span>
-                                    <span className="text-white font-bold">NGUYEN VAN A</span>
+                                    <span className="text-white font-bold">{settings.bank_owner || 'Chưa cấu hình'}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-[#222] pb-2">
                                     <span className="text-gray-500">Nội dung CK:</span>
-                                    <span className="text-[#e60012] font-bold uppercase">{orderId}</span>
+                                    <span className="text-[#e60012] font-bold uppercase">UNTYPED {orderCode}</span>
                                 </div>
                                 <div className="flex justify-between pt-2">
                                     <span className="text-gray-500">Số tiền:</span>
-                                    <span className="text-white font-bold">{formatPrice(grandTotal)}</span>
+                                    <span className="text-white font-bold">{formatPrice(savedTotal)}</span>
                                 </div>
                             </div>
+                            {/* VietQR Code */}
+                            {settings.bank_id && settings.bank_account && (
+                                <div className="mt-6 flex flex-col items-center">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Quét mã QR để chuyển khoản</p>
+                                    <div className="bg-white p-3 rounded-lg">
+                                        <img
+                                            src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.bank_account}-compact.png?amount=${savedTotal}&addInfo=UNTYPED ${orderCode}&accountName=${encodeURIComponent(settings.bank_owner || '')}`}
+                                            alt="VietQR"
+                                            className="w-48 h-48 object-contain"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="bg-[#111] border border-[#2a2a2a] p-8 text-left flex flex-col justify-center items-center">
@@ -444,6 +472,28 @@ export default function CheckoutPage() {
                                 </div>
                             </label>
                         </div>
+
+                        {/* Inline QR when bank_transfer selected */}
+                        {formData.payment_method === 'bank_transfer' && settings.bank_id && settings.bank_account && (
+                            <div className="bg-[#111] border border-[#2a2a2a] p-6 mt-4">
+                                <div className="flex flex-col items-center">
+                                    <h3 className="text-[10px] font-black text-[#e60012] uppercase tracking-widest mb-1">Thông tin chuyển khoản</h3>
+                                    <div className="text-xs text-gray-400 space-y-1 mb-4 text-center">
+                                        <p>{settings.bank_id} — <span className="text-white font-mono font-bold">{settings.bank_account}</span></p>
+                                        <p>Chủ TK: <span className="text-white font-bold uppercase">{settings.bank_owner}</span></p>
+                                        <p>Số tiền: <span className="text-[#e60012] font-bold">{formatPrice(grandTotal)}</span></p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg">
+                                        <img
+                                            src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.bank_account}-compact.png?amount=${grandTotal}&addInfo=UNTYPED ${preOrderCode}&accountName=${encodeURIComponent(settings.bank_owner || '')}`}
+                                            alt="VietQR"
+                                            className="w-48 h-48 object-contain"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-600 mt-2">Quét mã QR để chuyển khoản nhanh</p>
+                                </div>
+                            </div>
+                        )}
                     </section>
                 </div>
 

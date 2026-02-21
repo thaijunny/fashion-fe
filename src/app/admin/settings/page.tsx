@@ -17,7 +17,8 @@ import {
     Image as ImageIcon,
     Loader2,
     Upload,
-    FileText
+    FileText,
+    CreditCard
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -37,6 +38,9 @@ export default function AdminSettingsPage() {
         banner_image: '',
         studio_image: '',
         about_content: '',
+        bank_id: '',
+        bank_account: '',
+        bank_owner: '',
     });
 
     useEffect(() => {
@@ -164,6 +168,49 @@ export default function AdminSettingsPage() {
                                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                                 className="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm min-h-[80px] resize-none"
                                 placeholder="Địa chỉ cửa hàng"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bank Payment Settings */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+                            <CreditCard size={20} />
+                        </div>
+                        <h3 className="font-bold text-gray-800">Tài khoản nhận thanh toán</h3>
+                    </div>
+                    <p className="text-xs text-gray-500">Thông tin ngân hàng sẽ hiển thị khi khách chọn chuyển khoản và dùng để tạo mã QR (VietQR).</p>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Mã ngân hàng (VietQR)</label>
+                            <input
+                                type="text"
+                                value={settings.bank_id}
+                                onChange={(e) => setSettings({ ...settings, bank_id: e.target.value })}
+                                className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                                placeholder="VD: VCB, TCB, MB, ACB..."
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Số tài khoản</label>
+                            <input
+                                type="text"
+                                value={settings.bank_account}
+                                onChange={(e) => setSettings({ ...settings, bank_account: e.target.value })}
+                                className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                                placeholder="VD: 1234567890"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Chủ tài khoản</label>
+                            <input
+                                type="text"
+                                value={settings.bank_owner}
+                                onChange={(e) => setSettings({ ...settings, bank_owner: e.target.value })}
+                                className="w-full px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm uppercase"
+                                placeholder="VD: NGUYEN VAN A"
                             />
                         </div>
                     </div>
