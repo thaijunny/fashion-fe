@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { fetchProducts, formatPrice, getImageUrl, updateProduct, deleteProduct, createProduct, fetchCategories, fetchSizes, fetchColors, fetchMaterials, uploadFile } from '@/lib/api';
+import { fetchProducts, formatPrice, getImageUrl, updateProduct, deleteProduct, hardDeleteProduct, createProduct, fetchCategories, fetchSizes, fetchColors, fetchMaterials, uploadFile } from '@/lib/api';
 import { Product, Category, Size, Color, MaterialType } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 import {
@@ -12,6 +12,7 @@ import {
     Edit,
     Eye,
     EyeOff,
+    Trash2,
     ChevronLeft,
     ChevronRight,
     ExternalLink,
@@ -75,7 +76,9 @@ export default function AdminProductsPage() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [formData, setFormData] = useState<FormData>({ ...emptyForm });
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; product: Product | null }>({ isOpen: false, product: null });
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: Product | null }>({ isOpen: false, product: null });
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const limit = 10;
 
     const productToForm = (product: Product): FormData => ({
@@ -203,6 +206,29 @@ export default function AdminProductsPage() {
         } finally {
             setIsUpdatingStatus(false);
             setConfirmModal({ isOpen: false, product: null });
+        }
+    };
+
+    const handleHardDelete = async () => {
+        const product = deleteModal.product;
+        if (!token || !product) return;
+
+        setIsDeleting(true);
+        try {
+            const success = await hardDeleteProduct(product.id, token);
+            if (success) {
+                setProducts(products.filter(p => p.id !== product.id));
+                setTotalItems(prev => prev - 1);
+                showToast('Đã xóa vĩnh viễn sản phẩm');
+            } else {
+                showToast('Xóa sản phẩm thất bại', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to hard delete product', error);
+            showToast('Xóa sản phẩm thất bại', 'error');
+        } finally {
+            setIsDeleting(false);
+            setDeleteModal({ isOpen: false, product: null });
         }
     };
 
@@ -406,6 +432,13 @@ export default function AdminProductsPage() {
                                                     title={product.isHidden ? "Hiển thị" : "Ẩn"}
                                                 >
                                                     {product.isHidden ? <Eye size={16} /> : <EyeOff size={16} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeleteModal({ isOpen: true, product })}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Xóa vĩnh viễn"
+                                                >
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </td>
@@ -783,6 +816,17 @@ export default function AdminProductsPage() {
                 type={confirmModal.product?.isHidden ? "success" : "warning"}
                 isLoading={isUpdatingStatus}
                 confirmText={confirmModal.product?.isHidden ? "Hiển thị ngay" : "Ẩn ngay"}
+            />
+
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Xóa vĩnh viễn sản phẩm?"
+                message={`Bạn có chắc chắn muốn XÓA VĨNH VIỄN sản phẩm "${deleteModal.product?.name}"? Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan (sizes, màu, chất liệu) cũng sẽ bị xóa.`}
+                onConfirm={handleHardDelete}
+                onCancel={() => setDeleteModal({ isOpen: false, product: null })}
+                type="danger"
+                isLoading={isDeleting}
+                confirmText="Xóa vĩnh viễn"
             />
         </div>
     );

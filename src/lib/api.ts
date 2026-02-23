@@ -381,6 +381,20 @@ export async function deleteProduct(id: string, token: string): Promise<boolean>
   }
 }
 
+export async function hardDeleteProduct(id: string, token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/products/${id}/hard`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchProductById(id: string): Promise<Product | null> {
   try {
     const res = await fetch(`${API_URL}/products/${id}`, { cache: 'no-store' });
