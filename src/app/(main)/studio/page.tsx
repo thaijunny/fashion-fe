@@ -49,6 +49,7 @@ import {
   ShoppingBag,
   Sparkles,
   StickyNote as Sticker,
+  Fingerprint,
   Upload,
   Trash2,
   Copy,
@@ -147,8 +148,9 @@ function StudioPageContent() {
   const [shapes, setShapes] = useState<any[]>([]);
   const [fontOptions, setFontOptions] = useState<any[]>([]);
   const [textTemplates, setTextTemplates] = useState<any[]>([]);
+  const [patterns, setPatterns] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery' | 'my-projects'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'patterns' | 'ai-gallery' | 'my-projects'>('templates');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -381,12 +383,13 @@ function StudioPageContent() {
 
     const loadData = async () => {
       try {
-        const [colors, dbStickers, dbIcons, dbShapes, dbFonts, templates, sizes] = await Promise.all([
+        const [colors, dbStickers, dbIcons, dbShapes, dbFonts, dbPatterns, templates, sizes] = await Promise.all([
           fetchStudioColors(),
           fetchStudioAssets('sticker'),
           fetchStudioAssets('icon'),
           fetchStudioAssets('shape'),
           fetchStudioAssets('font'),
+          fetchStudioAssets('pattern'),
           fetchGarmentTemplates(),
           fetchSizes()
         ]);
@@ -396,6 +399,7 @@ function StudioPageContent() {
         if (dbIcons.length) setIcons(dbIcons);
         if (dbShapes.length) setShapes(dbShapes);
         if (dbFonts.length) setFontOptions(dbFonts);
+        if (dbPatterns.length) setPatterns(dbPatterns);
         if (sizes.length) setSizeOptions(sizes);
 
         // Map garment templates to studio format
@@ -703,10 +707,10 @@ function StudioPageContent() {
         return;
       }
 
-      // Paste: Ctrl+V
+      // Paste: Ctrl+V — element paste is handled here only if no clipboard image
+      // Clipboard image paste is handled by the 'paste' event listener below
       if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isTyping) {
-        e.preventDefault();
-        pasteElement();
+        // Don't preventDefault here — let the paste event fire for clipboard images
         return;
       }
 
@@ -720,6 +724,78 @@ function StudioPageContent() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElementIds, editingTextId, historyIndex, history]);
+
+  // Clipboard paste handler — supports pasting images from clipboard
+  React.useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Check if user is typing in an input
+      const activeElement = document.activeElement;
+      const tagName = activeElement?.tagName.toLowerCase();
+      const isTyping = tagName === 'input' || tagName === 'textarea' ||
+        activeElement?.getAttribute('contenteditable') === 'true' ||
+        editingTextId !== null;
+      if (isTyping) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) {
+        // No clipboard data — fall back to element paste
+        pasteElement();
+        return;
+      }
+
+      // Check for image in clipboard
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          imageFile = items[i].getAsFile();
+          break;
+        }
+      }
+
+      if (imageFile && token) {
+        e.preventDefault();
+        try {
+          const serverPath = await uploadFile(imageFile, token);
+          if (!serverPath) {
+            showToast('Dán ảnh thất bại', 'error');
+            return;
+          }
+          // Add to user uploads gallery so it persists when project is saved
+          setUserUploads(prev => [serverPath, ...prev]);
+          // Create image to get natural dimensions then add to canvas
+          const img = new window.Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const maxWidth = 200;
+            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+            const newElement: DesignElement = {
+              id: `image-${Date.now()}`,
+              type: 'image',
+              x: 100,
+              y: 150,
+              width: img.width * scale,
+              height: img.height * scale,
+              content: serverPath,
+              opacity: 100,
+            };
+            setElements(prev => [...prev, newElement]);
+            setSelectedElementIds([newElement.id]);
+          };
+          img.src = getImageUrl(serverPath);
+          showToast('Đã dán ảnh từ clipboard!', 'success');
+        } catch (err) {
+          console.error('Paste image error:', err);
+          showToast('Dán ảnh thất bại', 'error');
+        }
+      } else {
+        // No image in clipboard — fall back to element paste
+        pasteElement();
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [token, editingTextId, elements]);
 
   // Mouse move handler for dragging
   React.useEffect(() => {
@@ -1860,6 +1936,7 @@ function StudioPageContent() {
             { id: 'shapes', icon: Square, label: 'Shapes' },
             { id: 'images', icon: ImageIcon, label: 'Upload' },
             { id: 'stickers', icon: Sticker, label: 'Stickers' },
+            { id: 'patterns', icon: Fingerprint, label: 'Họa tiết' },
           ].map((tool) => (
             <button
               key={tool.id}
@@ -2177,6 +2254,41 @@ function StudioPageContent() {
                     );
                   })}
                 </div>
+              </>
+            )}
+
+            {activeTab === 'patterns' && (
+              <>
+                <h3 className="text-white font-bold mb-4">Họa tiết & Logo</h3>
+                {patterns.length === 0 ? (
+                  <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
+                    <Fingerprint size={32} className="mx-auto mb-2 text-gray-600" />
+                    <p className="text-gray-600 text-xs">Chưa có họa tiết nào</p>
+                    <p className="text-gray-700 text-[10px] mt-1">Admin có thể thêm họa tiết trong trang quản lý</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {patterns.map((pattern, index) => {
+                      const patternUrl = pattern.url || pattern;
+                      return (
+                        <button
+                          key={pattern.id || index}
+                          onClick={() => addStickerElement(patternUrl)}
+                          className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden hover:border-[#e60012] transition-all"
+                        >
+                          <img src={getImageUrl(patternUrl)} alt={pattern.name || 'pattern'} className="w-full h-full object-contain p-2" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
+                            <Plus className="text-white" size={16} />
+                            {pattern.name && <span className="text-white text-[9px] mt-1 px-1 truncate max-w-full">{pattern.name}</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-gray-600 text-[10px] mt-3 italic text-center">
+                  Click vào họa tiết để thêm vào thiết kế
+                </p>
               </>
             )}
             {activeTab === 'my-projects' && (
