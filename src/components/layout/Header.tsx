@@ -14,7 +14,7 @@ const navLinks = [
   { href: '/products', label: 'Sản Phẩm' },
   { href: '/studio', label: 'Design Studio' },
   { href: '/design-orders', label: 'Đơn Thiết Kế' },
-  { href: '/about', label: 'Về Chúng Tôi' },
+  { href: '/about', label: 'About Us' },
 ];
 
 export default function Header() {

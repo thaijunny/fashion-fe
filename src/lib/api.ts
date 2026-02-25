@@ -395,6 +395,33 @@ export async function hardDeleteProduct(id: string, token: string): Promise<bool
   }
 }
 
+// Profile APIs
+export async function updateProfile(data: { full_name?: string; phone_number?: string; address?: string }, token: string) {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Cập nhật thất bại'); }
+  return await res.json();
+}
+
+export async function changePassword(data: { current_password: string; new_password: string }, token: string) {
+  const res = await fetch(`${API_URL}/auth/me/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Đổi mật khẩu thất bại'); }
+  return await res.json();
+}
+
 export async function fetchProductById(id: string): Promise<Product | null> {
   try {
     const res = await fetch(`${API_URL}/products/${id}`, { cache: 'no-store' });

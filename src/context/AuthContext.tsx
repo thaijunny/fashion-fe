@@ -13,6 +13,8 @@ interface User {
   avatar_url?: string;
   uploaded_images?: string[];
   ai_images?: string[];
+  phone_number?: string;
+  address?: string;
 }
 
 interface AuthContextType {
@@ -26,6 +28,7 @@ interface AuthContextType {
   logout: () => void;
   openLoginModal: () => void;
   closeLoginModal: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -65,6 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshUser = async () => {
+    if (token) await fetchMe(token);
   };
 
   const router = useRouter();
@@ -128,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, token, loading, isLoginModalOpen,
       login, register, googleLogin: googleLoginFn, logout,
-      openLoginModal, closeLoginModal
+      openLoginModal, closeLoginModal, refreshUser
     }}>
       {children}
     </AuthContext.Provider>

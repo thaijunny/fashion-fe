@@ -6,17 +6,22 @@ import { useSettings } from '@/context/SettingsContext';
 import { MapPin, Phone, Mail, ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
-const DEFAULT_ABOUT = `UNTYPED CLOTHING — thương hiệu thời trang đường phố được thành lập với sứ mệnh mang đến phong cách độc đáo, khác biệt cho thế hệ trẻ Việt Nam.
+const DEFAULT_ABOUT = `<p>UNTYPED CLOTHING — thương hiệu thời trang đường phố được thành lập với sứ mệnh mang đến phong cách độc đáo, khác biệt cho thế hệ trẻ Việt Nam.</p>
+<p>Chúng tôi tin rằng thời trang không chỉ là quần áo — đó là cách bạn thể hiện bản thân, là tuyên ngôn cá nhân trước thế giới. Mỗi thiết kế của UNTYPED đều mang trong mình tinh thần tự do, sáng tạo và dám khác biệt.</p>
+<p>Với đội ngũ thiết kế trẻ, đầy nhiệt huyết cùng chất lượng sản phẩm được kiểm soát chặt chẽ, UNTYPED cam kết mang đến cho bạn những sản phẩm không chỉ đẹp mắt mà còn bền bỉ theo thời gian.</p>
+<p>Đặc biệt, với Design Studio — công cụ thiết kế trực tuyến độc quyền, bạn có thể tự tay tạo nên những tác phẩm thời trang mang dấu ấn cá nhân, từ ý tưởng đến sản phẩm thực tế.</p>`;
 
-Chúng tôi tin rằng thời trang không chỉ là quần áo — đó là cách bạn thể hiện bản thân, là tuyên ngôn cá nhân trước thế giới. Mỗi thiết kế của UNTYPED đều mang trong mình tinh thần tự do, sáng tạo và dám khác biệt.
-
-Với đội ngũ thiết kế trẻ, đầy nhiệt huyết cùng chất lượng sản phẩm được kiểm soát chặt chẽ, UNTYPED cam kết mang đến cho bạn những sản phẩm không chỉ đẹp mắt mà còn bền bỉ theo thời gian.
-
-Đặc biệt, với Design Studio — công cụ thiết kế trực tuyến độc quyền, bạn có thể tự tay tạo nên những tác phẩm thời trang mang dấu ấn cá nhân, từ ý tưởng đến sản phẩm thực tế.`;
+const DEFAULT_CORE_VALUES = [
+    { emoji: '🔥', title: 'Sáng Tạo', desc: 'Luôn đổi mới trong thiết kế' },
+    { emoji: '💎', title: 'Chất Lượng', desc: 'Chất liệu cao cấp, bền bỉ' },
+    { emoji: '⚡', title: 'Khác Biệt', desc: 'Phong cách độc đáo, không trùng lặp' },
+    { emoji: '🤝', title: 'Tận Tâm', desc: 'Hỗ trợ khách hàng 24/7' },
+];
 
 export default function AboutPage() {
     const { settings } = useSettings();
     const [aboutContent, setAboutContent] = useState('');
+    const [coreValues, setCoreValues] = useState(DEFAULT_CORE_VALUES);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,6 +29,14 @@ export default function AboutPage() {
             try {
                 const data = await fetchSettings();
                 setAboutContent(data.about_content || DEFAULT_ABOUT);
+                if (data.core_values) {
+                    try {
+                        const parsed = JSON.parse(data.core_values);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            setCoreValues(parsed);
+                        }
+                    } catch { /* use defaults */ }
+                }
             } catch {
                 setAboutContent(DEFAULT_ABOUT);
             } finally {
@@ -55,7 +68,7 @@ export default function AboutPage() {
                 <div className="relative z-10 container-street text-center">
                     <span className="text-[#e60012] font-bold uppercase tracking-[0.3em] text-sm block mb-6 drop-shadow-lg">About Us</span>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tight mb-6 drop-shadow-lg">
-                        VỀ <span className="text-[#e60012]">CHÚNG TÔI</span>
+                        ABOUT <span className="text-[#e60012]">US</span>
                     </h1>
                     <p className="text-gray-300 max-w-2xl mx-auto text-lg drop-shadow-md">
                         Câu chuyện đằng sau thương hiệu thời trang đường phố UNTYPED CLOTHING.
@@ -79,13 +92,10 @@ export default function AboutPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="space-y-6">
-                                    {aboutContent.split('\n\n').map((paragraph, index) => (
-                                        <p key={index} className="text-gray-300 text-lg leading-relaxed">
-                                            {paragraph}
-                                        </p>
-                                    ))}
-                                </div>
+                                <div
+                                    className="prose prose-invert prose-lg max-w-none [&_img]:rounded-lg [&_img]:my-4 [&_img]:max-w-full [&_h2]:text-white [&_h2]:font-extrabold [&_h2]:uppercase [&_h3]:text-white [&_h3]:font-bold [&_p]:text-gray-300 [&_p]:leading-relaxed [&_li]:text-gray-300"
+                                    dangerouslySetInnerHTML={{ __html: aboutContent }}
+                                />
                             )}
                         </div>
 
@@ -95,12 +105,7 @@ export default function AboutPage() {
                             <div className="bg-[#111] border border-[#2a2a2a] p-8">
                                 <h3 className="text-white font-extrabold uppercase tracking-wider mb-6 text-lg">Giá Trị Cốt Lõi</h3>
                                 <div className="space-y-5">
-                                    {[
-                                        { emoji: '🔥', title: 'Sáng Tạo', desc: 'Luôn đổi mới trong thiết kế' },
-                                        { emoji: '💎', title: 'Chất Lượng', desc: 'Chất liệu cao cấp, bền bỉ' },
-                                        { emoji: '⚡', title: 'Khác Biệt', desc: 'Phong cách độc đáo, không trùng lặp' },
-                                        { emoji: '🤝', title: 'Tận Tâm', desc: 'Hỗ trợ khách hàng 24/7' },
-                                    ].map((value, i) => (
+                                    {coreValues.map((value, i) => (
                                         <div key={i} className="flex items-start gap-4 group">
                                             <span className="text-2xl group-hover:scale-125 transition-transform">{value.emoji}</span>
                                             <div>
