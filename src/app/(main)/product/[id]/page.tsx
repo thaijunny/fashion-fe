@@ -128,7 +128,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {product.isNew && <span className="badge-new">MỚI</span>}
-                {product.isOnSale && discount > 0 && <span className="badge-sale">-{discount}%</span>}
+                {!!product.isOnSale && discount > 0 ? <span className="badge-sale">-{discount}%</span> : null}
                 {product.isBestSeller && <span className="badge-hot">HOT</span>}
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <span className="text-3xl font-bold text-[#e60012]">
                 {formatPrice(currentPrice)}
               </span>
-              {product.originalPrice && product.originalPrice > product.price && (
+              {!!product.originalPrice && product.originalPrice > product.price ? (
                 <>
                   <span className="text-xl text-gray-500 line-through">
                     {formatPrice(product.originalPrice)}
@@ -176,7 +176,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     -{discount}%
                   </span>
                 </>
-              )}
+              ) : null}
             </div>
 
             {/* Description */}
