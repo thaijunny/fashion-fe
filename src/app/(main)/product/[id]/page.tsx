@@ -167,7 +167,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <span className="text-3xl font-bold text-[#e60012]">
                 {formatPrice(currentPrice)}
               </span>
-              {product.originalPrice && (
+              {product.originalPrice && product.originalPrice > product.price && (
                 <>
                   <span className="text-xl text-gray-500 line-through">
                     {formatPrice(product.originalPrice)}
