@@ -141,7 +141,8 @@ function StudioPageContent() {
   const [viewSide, setViewSide] = useState<'front' | 'back'>('front');
   const [selectedSize, setSelectedSize] = useState<string>('L');
   const [sizeOptions, setSizeOptions] = useState<any[]>([]);
-  const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
+  const [selectedProductColor, setSelectedProductColor] = useState<string>('#ffffff');
+  const [garmentColors, setGarmentColors] = useState<any[]>([]);
   const [colorPalette, setColorPalette] = useState<string[]>([]);
   const [stickers, setStickers] = useState<any[]>([]);
   const [icons, setIcons] = useState<any[]>([]);
@@ -394,7 +395,11 @@ function StudioPageContent() {
           fetchSizes()
         ]);
 
-        if (colors.length) setColorPalette(colors.map((c: any) => c.hex_code));
+        if (colors.length) {
+          setGarmentColors(colors);
+          setColorPalette(colors.map((c: any) => c.hex_code));
+          if (colors[0]?.hex_code) setSelectedProductColor(colors[0].hex_code);
+        }
         if (dbStickers.length) setStickers(dbStickers);
         if (dbIcons.length) setIcons(dbIcons);
         if (dbShapes.length) setShapes(dbShapes);
@@ -621,6 +626,11 @@ function StudioPageContent() {
       setOrderForm(f => ({
         ...f,
         full_name: user?.full_name || '',
+        phone_number: (user as any)?.phone_number || '',
+        province: (user as any)?.province || '',
+        district: (user as any)?.district || '',
+        ward: (user as any)?.ward || '',
+        street: (user as any)?.street || '',
         payment_method: 'cod'
       }));
       // Generate order code for QR display
@@ -1562,14 +1572,31 @@ function StudioPageContent() {
       });
 
       ctx.save();
-      if (selectedProductColor === 'black') {
-        ctx.filter = 'invert(1) grayscale(1) brightness(0.15)';
-      } else {
-        ctx.filter = 'none';
-      }
+      // Draw product image base
       ctx.drawImage(productImg, 0, 0, canvas.width, canvas.height);
+      
+      // Apply color tinting using multiply and destination-in to preserve texture
+      if (selectedProductColor && selectedProductColor !== '#ffffff' && selectedProductColor !== 'white') {
+        // Create an offscreen canvas for the tint layer to clip it properly
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = canvas.width;
+        offCanvas.height = canvas.height;
+        const offCtx = offCanvas.getContext('2d');
+        if (offCtx) {
+          // 1. Draw target color
+          offCtx.fillStyle = selectedProductColor;
+          offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+          
+          // 2. Clip to product image alpha
+          offCtx.globalCompositeOperation = 'destination-in';
+          offCtx.drawImage(productImg, 0, 0, offCanvas.width, offCanvas.height);
+          
+          // 3. Draw tinted layer back to main canvas with multiply
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      }
       ctx.restore();
-      ctx.filter = 'none'; // Reset for elements
 
       // Calculate design area
       const designAreaLeft = (currentView.designArea.left / 100) * canvas.width;
@@ -2026,27 +2053,48 @@ function StudioPageContent() {
 
                 {/* Garment Color Selector */}
                 <h3 className="text-white font-bold mb-3">Màu áo</h3>
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => setSelectedProductColor('white')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'white'
-                      ? 'border-white bg-white text-black'
-                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                      }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
-                    Trắng
-                  </button>
-                  <button
-                    onClick={() => setSelectedProductColor('black')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'black'
-                      ? 'border-white bg-[#1a1a1a] text-white'
-                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                      }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
-                    Đen
-                  </button>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {garmentColors.length > 0 ? (
+                    garmentColors.map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setSelectedProductColor(color.hex_code)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${selectedProductColor === color.hex_code
+                          ? 'border-white bg-[#1a1a1a] text-white shadow-lg'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full border border-gray-600 flex-shrink-0"
+                          style={{ backgroundColor: color.hex_code }}
+                        />
+                        <span className="text-xs truncate">{color.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setSelectedProductColor('#ffffff')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === '#ffffff'
+                          ? 'border-white bg-white text-black'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
+                        Trắng
+                      </button>
+                      <button
+                        onClick={() => setSelectedProductColor('#111111')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === '#111111'
+                          ? 'border-white bg-[#1a1a1a] text-white'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
+                        Đen
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Front/Back Toggle */}
@@ -2375,17 +2423,28 @@ function StudioPageContent() {
             }}
           >
             {/* Product Template Background Image */}
-            <img
-              src={getImageUrl(currentView.image)}
-              alt={`${selectedProduct.name} - ${currentView.name}`}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{
-                opacity: 1,
-                filter: selectedProductColor === 'black'
-                  ? 'invert(1) grayscale(1) brightness(0.15)'
-                  : 'none'
-              }}
-            />
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+              <img
+                src={getImageUrl(currentView.image)}
+                alt={`${selectedProduct.name} - ${currentView.name}`}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: selectedProductColor,
+                  mixBlendMode: 'multiply',
+                  WebkitMaskImage: `url(${getImageUrl(currentView.image)})`,
+                  WebkitMaskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center',
+                  maskImage: `url(${getImageUrl(currentView.image)})`,
+                  maskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                }}
+              />
+            </div>
 
             {/* Design Area */}
             <div
@@ -2585,10 +2644,7 @@ function StudioPageContent() {
               ))}
             </div>
 
-            {/* Template Label */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-gray-500">
-              {selectedProduct.name} ({currentView.name}) • {selectedProduct.width}x{selectedProduct.height}
-            </div>
+            {/* Template Label Removed */}
           </div>
         </main>
 
@@ -3244,7 +3300,7 @@ function StudioPageContent() {
                   >
                     {/* Front Side */}
                     <div
-                      className="absolute inset-0 flex items-center justify-center"
+                      className="absolute inset-0 flex items-center justify-center font-bold"
                       style={{
                         backfaceVisibility: 'hidden',
                       }}
@@ -3254,10 +3310,20 @@ function StudioPageContent() {
                           src={getImageUrl(selectedProduct.variants.front.image)}
                           alt="Front"
                           className="max-h-[450px] object-contain"
+                        />
+                        <div
+                          className="absolute inset-0 pointer-events-none"
                           style={{
-                            filter: selectedProductColor === 'black'
-                              ? 'invert(1) grayscale(1) brightness(0.15)'
-                              : 'none'
+                            backgroundColor: selectedProductColor,
+                            mixBlendMode: 'multiply',
+                            WebkitMaskImage: `url(${getImageUrl(selectedProduct.variants.front.image)})`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url(${getImageUrl(selectedProduct.variants.front.image)})`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
                           }}
                         />
                         {/* Front Design Overlay */}
@@ -3334,15 +3400,12 @@ function StudioPageContent() {
                             </div>
                           ))}
                         </div>
-                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#e60012] px-3 py-1 rounded text-xs font-bold text-white">
-                          MẶT TRƯỚC
-                        </div>
                       </div>
                     </div>
 
                     {/* Back Side */}
                     <div
-                      className="absolute inset-0 flex items-center justify-center"
+                      className="absolute inset-0 flex items-center justify-center font-bold"
                       style={{
                         backfaceVisibility: 'hidden',
                         transform: 'rotateY(180deg)',
@@ -3353,10 +3416,20 @@ function StudioPageContent() {
                           src={getImageUrl(selectedProduct.variants.back.image)}
                           alt="Back"
                           className="max-h-[450px] object-contain"
+                        />
+                        <div
+                          className="absolute inset-0 pointer-events-none"
                           style={{
-                            filter: selectedProductColor === 'black'
-                              ? 'invert(1) grayscale(1) brightness(0.15)'
-                              : 'none'
+                            backgroundColor: selectedProductColor,
+                            mixBlendMode: 'multiply',
+                            WebkitMaskImage: `url(${getImageUrl(selectedProduct.variants.back.image)})`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url(${getImageUrl(selectedProduct.variants.back.image)})`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
                           }}
                         />
                         {/* Back Design Overlay */}
@@ -3432,9 +3505,6 @@ function StudioPageContent() {
                               )}
                             </div>
                           ))}
-                        </div>
-                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a2a2a] px-3 py-1 rounded text-xs font-bold text-white">
-                          MẶT SAU
                         </div>
                       </div>
                     </div>

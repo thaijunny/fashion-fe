@@ -172,7 +172,12 @@ export default function AdminDesignOrdersPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="font-bold text-gray-900">{order.project?.name || 'Thiết kế'}</p>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-black bg-gray-900 text-white px-1.5 py-0.5 rounded italic">
+                                                        #{order.order_code}
+                                                    </span>
+                                                    <p className="font-bold text-gray-900">{order.project?.name || 'Thiết kế'}</p>
+                                                </div>
                                                 <p className="text-xs text-gray-500">{order.user?.full_name || order.user?.email || '—'}</p>
                                                 <p className="text-xs text-gray-400">{order.full_name} · {order.phone_number}</p>
                                             </td>

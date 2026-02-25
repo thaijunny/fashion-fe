@@ -400,7 +400,15 @@ export async function hardDeleteProduct(id: string, token: string): Promise<bool
 }
 
 // Profile APIs
-export async function updateProfile(data: { full_name?: string; phone_number?: string; address?: string }, token: string) {
+export async function updateProfile(data: { 
+  full_name?: string; 
+  phone_number?: string; 
+  address?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  street?: string;
+}, token: string) {
   const res = await fetch(`${API_URL}/auth/me`, {
     method: 'PUT',
     headers: {
@@ -845,11 +853,23 @@ export async function downloadDesignOrderZip(id: string, token: string) {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Tải xuống thất bại');
+  
+  // Try to get filename from Content-Disposition header
+  const disposition = res.headers.get('Content-Disposition');
+  let filename = `design_order_${id}.zip`;
+  if (disposition && disposition.indexOf('attachment') !== -1) {
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+    const matches = filenameRegex.exec(disposition);
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, '');
+    }
+  }
+
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `design_order_${id}.zip`;
+  a.download = filename;
   a.click();
   window.URL.revokeObjectURL(url);
 }

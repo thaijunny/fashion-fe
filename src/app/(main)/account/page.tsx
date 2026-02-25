@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { updateProfile, changePassword } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { User, Mail, Phone, MapPin, Lock, Save, Loader2, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Lock, Save, Loader2, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { fetchUserOrders, fetchMyDesignOrders } from '@/lib/api';
 
 export default function AccountPage() {
     const { user, token, loading, refreshUser, openLoginModal } = useAuth();
@@ -14,7 +15,15 @@ export default function AccountPage() {
         full_name: '',
         phone_number: '',
         address: '',
+        province: '',
+        district: '',
+        ward: '',
+        street: '',
     });
+    const [addrProvinces, setAddrProvinces] = useState<{ code: number; name: string }[]>([]);
+    const [addrDistricts, setAddrDistricts] = useState<{ code: number; name: string }[]>([]);
+    const [addrWards, setAddrWards] = useState<{ code: number; name: string }[]>([]);
+    const [addrLoading, setAddrLoading] = useState(false);
     const [passwordForm, setPasswordForm] = useState({
         current_password: '',
         new_password: '',
@@ -31,21 +40,124 @@ export default function AccountPage() {
                 full_name: user.full_name || '',
                 phone_number: user.phone_number || '',
                 address: user.address || '',
+                province: (user as any).province || '',
+                district: (user as any).district || '',
+                ward: (user as any).ward || '',
+                street: (user as any).street || '',
             });
-        }
-    }, [user]);
 
-    useEffect(() => {
-        if (!loading && !user) {
-            openLoginModal();
+            // If profile address is empty, try to fetch from latest orders
+            if (!(user as any).province && token) {
+                const syncFromOrders = async () => {
+                    try {
+                        const [pOrders, dOrders] = await Promise.all([
+                            fetchUserOrders(token),
+                            fetchMyDesignOrders(token)
+                        ]);
+                        
+                        // Combine and sort by date
+                        const allOrders = [
+                            ...pOrders.map((o: any) => ({ ...o, type: 'product' })),
+                            ...dOrders.map((o: any) => ({ ...o, type: 'design' }))
+                        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+                        const latestWithAddr = allOrders.find(o => o.shipping_address);
+                        if (latestWithAddr) {
+                            // Studio orders store address as "street, ward, district, province"
+                            // Product orders store address as string (usually same format or raw)
+                            const addr = latestWithAddr.shipping_address;
+                            if (addr.includes(',')) {
+                                const parts = addr.split(',').map((p: string) => p.trim());
+                                if (parts.length >= 4) {
+                                    setProfileForm(prev => ({
+                                        ...prev,
+                                        full_name: prev.full_name || latestWithAddr.full_name || '',
+                                        phone_number: prev.phone_number || latestWithAddr.phone_number || '',
+                                        province: parts[parts.length - 1],
+                                        district: parts[parts.length - 2],
+                                        ward: parts[parts.length - 3],
+                                        street: parts.slice(0, parts.length - 3).join(', ')
+                                    }));
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error syncing address from orders:', err);
+                    }
+                };
+                syncFromOrders();
+            }
         }
-    }, [loading, user]);
+    }, [user, token]);
+
+    // Fetch provinces on mount
+    useEffect(() => {
+        fetch('https://provinces.open-api.vn/api/p/')
+            .then(r => r.json())
+            .then(data => setAddrProvinces(data))
+            .catch(err => console.error('Error fetching provinces:', err));
+    }, []);
+
+    // Fetch districts when province changes
+    useEffect(() => {
+        if (profileForm.province && addrProvinces.length > 0) {
+            const p = addrProvinces.find(x => x.name === profileForm.province);
+            if (p) {
+                setAddrLoading(true);
+                fetch(`https://provinces.open-api.vn/api/p/${p.code}?depth=2`)
+                    .then(r => r.json())
+                    .then(d => {
+                        setAddrDistricts(d.districts);
+                        // If current district is not in new list, clear it
+                        if (profileForm.district && !d.districts.some((x: any) => x.name === profileForm.district)) {
+                            setProfileForm(prev => ({ ...prev, district: '', ward: '' }));
+                        }
+                    })
+                    .catch(() => { })
+                    .finally(() => setAddrLoading(false));
+            }
+        } else {
+            setAddrDistricts([]);
+            setAddrWards([]);
+        }
+    }, [profileForm.province, addrProvinces]);
+
+    // Fetch wards when district changes
+    useEffect(() => {
+        if (profileForm.district && addrDistricts.length > 0) {
+            const d = addrDistricts.find(x => x.name === profileForm.district);
+            if (d) {
+                setAddrLoading(true);
+                fetch(`https://provinces.open-api.vn/api/d/${d.code}?depth=2`)
+                    .then(r => r.json())
+                    .then(data => {
+                        setAddrWards(data.wards);
+                        // If current ward is not in new list, clear it
+                        if (profileForm.ward && !data.wards.some((x: any) => x.name === profileForm.ward)) {
+                            setProfileForm(prev => ({ ...prev, ward: '' }));
+                        }
+                    })
+                    .catch(() => { })
+                    .finally(() => setAddrLoading(false));
+            }
+        } else {
+            setAddrWards([]);
+        }
+    }, [profileForm.district, addrDistricts]);
 
     const handleSaveProfile = async () => {
         if (!token) return;
         setSavingProfile(true);
         try {
-            await updateProfile(profileForm, token);
+            // Update the combined address string for backward compatibility
+            const fullAddress = profileForm.province 
+                ? `${profileForm.street}, ${profileForm.ward}, ${profileForm.district}, ${profileForm.province}`
+                : profileForm.address;
+
+            await updateProfile({
+                ...profileForm,
+                address: fullAddress
+            }, token);
             await refreshUser();
             showToast('Cập nhật thông tin thành công!');
         } catch (error: any) {
@@ -154,16 +266,47 @@ export default function AccountPage() {
                             </div>
                         </div>
 
-                        {/* Address */}
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Địa Chỉ</label>
+                        {/* Address Selection */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Địa Chỉ Giao Hàng</label>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <select
+                                    value={profileForm.province}
+                                    onChange={e => setProfileForm(f => ({ ...f, province: e.target.value, district: '', ward: '' }))}
+                                    className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-3 py-3 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none"
+                                >
+                                    <option value="">Tỉnh/Thành phố</option>
+                                    {addrProvinces.map(p => <option key={p.code} value={p.name}>{p.name}</option>)}
+                                </select>
+                                <select
+                                    value={profileForm.district}
+                                    onChange={e => setProfileForm(f => ({ ...f, district: e.target.value, ward: '' }))}
+                                    disabled={!profileForm.province || addrLoading}
+                                    className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-3 py-3 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none disabled:opacity-40"
+                                >
+                                    <option value="">Quận/Huyện</option>
+                                    {addrDistricts.map(d => <option key={d.code} value={d.name}>{d.name}</option>)}
+                                </select>
+                                <select
+                                    value={profileForm.ward}
+                                    onChange={e => setProfileForm(f => ({ ...f, ward: e.target.value }))}
+                                    disabled={!profileForm.district || addrLoading}
+                                    className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-3 py-3 text-white text-xs focus:border-[#e60012] transition-colors outline-none appearance-none disabled:opacity-40"
+                                >
+                                    <option value="">Phường/Xã</option>
+                                    {addrWards.map(w => <option key={w.code} value={w.name}>{w.name}</option>)}
+                                </select>
+                            </div>
+
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-3 text-gray-600" size={16} />
-                                <textarea
-                                    value={profileForm.address}
-                                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] text-white focus:outline-none focus:border-[#e60012] transition-colors min-h-[80px] resize-none"
-                                    placeholder="Nhập địa chỉ giao hàng"
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+                                <input
+                                    type="text"
+                                    value={profileForm.street}
+                                    onChange={(e) => setProfileForm({ ...profileForm, street: e.target.value })}
+                                    className="w-full pl-10 pr-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] text-white focus:outline-none focus:border-[#e60012] transition-colors"
+                                    placeholder="Số nhà, tên đường..."
                                 />
                             </div>
                         </div>

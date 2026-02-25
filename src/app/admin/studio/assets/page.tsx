@@ -495,7 +495,8 @@ export default function AdminStudioAssetsPage() {
                                             />
                                         </div>
 
-                                        <div>
+                                        {/* Hidden Design Area Settings (Simple mode) */}
+                                        <div className="hidden">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Vùng in mặt trước (% từ cạnh)</label>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {(['left', 'top', 'right', 'bottom'] as const).map(k => (
@@ -508,7 +509,7 @@ export default function AdminStudioAssetsPage() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <div>
+                                        <div className="hidden">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Vùng in mặt sau (% từ cạnh)</label>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {(['left', 'top', 'right', 'bottom'] as const).map(k => (

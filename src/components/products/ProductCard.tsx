@@ -162,7 +162,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="text-[#e60012] font-bold text-lg">
             {formatPrice(product.price)}
           </span>
-          {product.originalPrice && product.originalPrice > product.price && (
+          {product.originalPrice !== undefined && product.originalPrice > product.price && product.originalPrice > 0 && (
             <>
               <span className="text-gray-500 line-through text-sm">
                 {formatPrice(product.originalPrice)}
