@@ -315,16 +315,20 @@ export async function createProduct(data: Partial<Product>, token: string): Prom
 export async function fetchProducts(options: {
   category?: string;
   search?: string;
+  sizes?: string[];
+  colors?: string[];
   page?: number;
   limit?: number;
   isAdminView?: boolean;
   token?: string;
 } = {}): Promise<{ items: Product[]; total: number; totalPages: number }> {
   try {
-    const { category, search, page, limit, isAdminView, token } = options;
+    const { category, search, sizes, colors, page, limit, isAdminView, token } = options;
     const query = new URLSearchParams();
     if (category) query.set('category', category);
     if (search) query.set('search', search);
+    if (sizes && sizes.length > 0) query.set('sizes', sizes.join(','));
+    if (colors && colors.length > 0) query.set('colors', colors.join(','));
     if (page) query.set('page', page.toString());
     if (limit) query.set('limit', limit.toString());
     if (isAdminView) query.set('isAdminView', 'true');

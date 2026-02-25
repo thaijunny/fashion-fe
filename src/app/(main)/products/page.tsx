@@ -52,6 +52,8 @@ function ProductsContent() {
       const data = await fetchProducts({
         category: selectedCategory || undefined,
         search: searchQuery || undefined,
+        sizes: selectedSizes.length > 0 ? selectedSizes : undefined,
+        colors: selectedColors.length > 0 ? selectedColors : undefined,
         page: currentPage,
         limit: ITEMS_PER_PAGE,
       });
@@ -81,7 +83,7 @@ function ProductsContent() {
   // Reload products when filters/page change
   useEffect(() => {
     loadProducts();
-  }, [currentPage, selectedCategory, searchQuery, sortBy]);
+  }, [currentPage, selectedCategory, searchQuery, sortBy, selectedSizes, selectedColors]);
 
   const handleCategoryToggle = (slug: string) => {
     setSelectedCategory(prev => prev === slug ? '' : slug);

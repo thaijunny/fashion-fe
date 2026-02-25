@@ -79,7 +79,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.isNew && (
             <span className="badge-new">MỚI</span>
           )}
-          {product.isOnSale && discount > 0 && (
+          {discount > 0 && (
             <span className="badge-sale">-{discount}%</span>
           )}
           {product.isBestSeller && !product.isNew && (
@@ -162,10 +162,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="text-[#e60012] font-bold text-lg">
             {formatPrice(product.price)}
           </span>
-          {product.originalPrice && (
-            <span className="text-gray-500 line-through text-sm">
-              {formatPrice(product.originalPrice)}
-            </span>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <>
+              <span className="text-gray-500 line-through text-sm">
+                {formatPrice(product.originalPrice)}
+              </span>
+              <span className="text-[#e60012] text-xs font-semibold bg-[#e60012]/10 px-1.5 py-0.5 rounded">
+                -{discount}%
+              </span>
+            </>
           )}
         </div>
 

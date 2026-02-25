@@ -47,6 +47,15 @@ export default function AdminSettingsPage() {
         const loadSettings = async () => {
             try {
                 const data = await fetchSettings();
+                // Pre-populate core values with defaults if empty
+                if (!data.core_values || data.core_values === '[]') {
+                    data.core_values = JSON.stringify([
+                        { emoji: '🔥', title: 'Sáng Tạo', desc: 'Luôn đổi mới trong thiết kế' },
+                        { emoji: '💎', title: 'Chất Lượng', desc: 'Chất liệu cao cấp, bền bỉ' },
+                        { emoji: '⚡', title: 'Khác Biệt', desc: 'Phong cách độc đáo, không trùng lặp' },
+                        { emoji: '🤝', title: 'Tận Tâm', desc: 'Hỗ trợ khách hàng 24/7' },
+                    ]);
+                }
                 setSettings(prev => ({ ...prev, ...data }));
             } catch (error) {
                 console.error('Failed to load settings', error);
