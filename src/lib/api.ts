@@ -861,23 +861,57 @@ export async function updateSettings(data: Record<string, any>, token: string) {
 
 // ── AI GENERATION ──────────────────────────────────────────────────
 
+// Device fingerprint for rate limiting across accounts on same device
+let _cachedFp: string | null = null;
+function getDeviceFingerprint(): string {
+  if (_cachedFp) return _cachedFp;
+  try {
+    const raw = [
+      navigator.userAgent,
+      screen.width + 'x' + screen.height,
+      screen.colorDepth,
+      navigator.language,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      navigator.hardwareConcurrency || '',
+    ].join('|');
+    // Simple hash
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const c = raw.charCodeAt(i);
+      hash = ((hash << 5) - hash) + c;
+      hash |= 0;
+    }
+    _cachedFp = Math.abs(hash).toString(36).padStart(8, '0');
+  } catch {
+    _cachedFp = 'unknown';
+  }
+  return _cachedFp;
+}
+
 export async function generateAIImageApi(prompt: string, token: string) {
   const res = await fetch(`${API_URL}/ai/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'X-Device-Fingerprint': getDeviceFingerprint(),
+    },
     body: JSON.stringify({ prompt }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Lỗi tạo ảnh AI');
-  return data as { url: string; used: number; limit: number; remaining: number };
+  return data as { url: string; used: number; limit: number; remaining: number; daily?: any; monthly?: any };
 }
 
 export async function fetchAIUsage(token: string) {
   const res = await fetch(`${API_URL}/ai/usage`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'X-Device-Fingerprint': getDeviceFingerprint(),
+    },
   });
-  if (!res.ok) return { used: 0, limit: 3, remaining: 3 };
-  return await res.json() as { used: number; limit: number; remaining: number };
+  if (!res.ok) return { used: 0, limit: 3, remaining: 3, daily: { used: 0, limit: 3, remaining: 3 }, monthly: { used: 0, limit: 15, remaining: 15 } };
+  return await res.json();
 }
 
 export async function fetchAIHistory(token: string): Promise<string[]> {

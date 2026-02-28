@@ -160,10 +160,11 @@ function StudioPageContent() {
     style: 'hiphop',
     customVibe: ''
   });
+  const [aiPromptText, setAiPromptText] = useState('');
   const [projectId, setProjectId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiUsage, setAiUsage] = useState({ used: 0, limit: 3, remaining: 3 });
+  const [aiUsage, setAiUsage] = useState({ used: 0, limit: 3, remaining: 3, daily: { used: 0, limit: 3, remaining: 3 }, monthly: { used: 0, limit: 15, remaining: 15 } });
   const [myProjects, setMyProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -1045,20 +1046,20 @@ function StudioPageContent() {
   // ── AI GENERATION (Real API) ─────────────────────────────────────
   const buildAIPrompt = (): string => {
     const styleMap: Record<string, string> = {
-      hiphop: 'streetwear hip-hop graffiti',
-      luxury: 'luxury minimalist elegant premium',
-      simple: 'clean simple geometric modern',
-      cyberpunk: 'cyberpunk neon glitch futuristic',
+      hiphop: 'urban streetwear hip-hop style with bold graffiti art, spray paint textures, and raw street culture vibes',
+      luxury: 'high-end luxury fashion with elegant minimalist design, premium gold accents, and sophisticated typography',
+      simple: 'clean modern minimalist design with geometric shapes, subtle gradients, and refined simplicity',
+      cyberpunk: 'futuristic cyberpunk aesthetic with neon glow effects, glitch art, circuit patterns, and dystopian vibes',
     };
     const garmentName = selectedProduct?.name || 'T-shirt';
-    const parts: string[] = [`${garmentName} graphic design`];
+    const parts: string[] = [`A high-quality ${garmentName} graphic design`];
     if (aiPersona.style) parts.push(styleMap[aiPersona.style] || aiPersona.style);
-    if (aiPersona.zodiac) parts.push(`${aiPersona.zodiac} zodiac themed`);
-    if (aiPersona.personality) parts.push(aiPersona.personality.slice(0, 60));
-    if (aiPersona.customVibe) parts.push(aiPersona.customVibe.slice(0, 80));
-    parts.push('flat vector, transparent background, bold colors, print-ready, isolated graphic');
-    if (selectedProductColor) parts.push(`designed for ${selectedProductColor} colored garment`);
-    return parts.join(', ');
+    if (aiPersona.zodiac) parts.push(`inspired by ${aiPersona.zodiac} zodiac constellation and symbolism`);
+    if (aiPersona.personality) parts.push(`reflecting ${aiPersona.personality.slice(0, 60)} personality`);
+    if (aiPersona.customVibe) parts.push(aiPersona.customVibe.slice(0, 100));
+    parts.push('flat vector illustration, isolated on transparent background, vibrant bold colors, print-ready, no text');
+    if (selectedProductColor) parts.push(`designed to look great on a ${selectedProductColor} colored garment`);
+    return parts.join('. ');
   };
 
   const loadAIUsage = useCallback(async () => {
@@ -1087,13 +1088,14 @@ function StudioPageContent() {
     }
     setIsGenerating(true);
     try {
-      const prompt = buildAIPrompt();
+      const prompt = aiPromptText || buildAIPrompt();
       const result = await generateAIImageApi(prompt, token);
       setGeneratedImages(prev => [result.url, ...prev]);
-      setAiUsage({ used: result.used, limit: result.limit, remaining: result.remaining });
+      setAiUsage({ used: result.used, limit: result.limit, remaining: result.remaining, daily: result.daily || { used: result.used, limit: result.limit, remaining: result.remaining }, monthly: result.monthly || { used: 0, limit: 15, remaining: 15 } });
       showToast(`Tạo ảnh AI thành công! Còn ${result.remaining} lượt`, 'success');
       setShowAIModal(false);
       setAiPersona({ personality: '', birthday: '', zodiac: '', style: 'hiphop', customVibe: '' });
+      setAiPromptText('');
     } catch (err: any) {
       showToast(err.message || 'Lỗi tạo ảnh AI', 'error');
     } finally {
@@ -3493,24 +3495,61 @@ function StudioPageContent() {
                 />
               </div>
 
-              {/* Daily Usage Counter */}
-              <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-lg border border-[#2a2a2a]">
-                <span className="text-xs text-gray-400">🎨 Lượt tạo hôm nay</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    {Array.from({ length: aiUsage.limit }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-3 h-3 rounded-full transition-all ${i < aiUsage.used
-                          ? 'bg-[#e60012]'
-                          : 'bg-[#2a2a2a] border border-[#3a3a3a]'
-                          }`}
-                      />
-                    ))}
+              {/* Live Prompt Preview */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Prompt gửi cho AI</label>
+                  <button
+                    type="button"
+                    onClick={() => setAiPromptText(buildAIPrompt())}
+                    className="text-[9px] text-[#e60012] hover:text-[#ff3333] uppercase font-bold tracking-widest"
+                  >
+                    ⤴ Tự động tạo lại
+                  </button>
+                </div>
+                <textarea
+                  value={aiPromptText || buildAIPrompt()}
+                  onChange={(e) => setAiPromptText(e.target.value)}
+                  rows={4}
+                  className="input-street w-full !py-3 h-28 resize-none text-xs font-mono"
+                  placeholder="Prompt sẽ tự động tạo từ các lựa chọn bên trên..."
+                />
+                <p className="text-[9px] text-gray-600 italic">💡 Bạn có thể chỉnh sửa prompt trực tiếp hoặc để AI tự động tạo</p>
+              </div>
+              {/* Daily + Monthly Usage Counter */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-lg border border-[#2a2a2a]">
+                  <span className="text-xs text-gray-400">🎨 Hôm nay</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {Array.from({ length: aiUsage.daily?.limit || 3 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-3 h-3 rounded-full transition-all ${i < (aiUsage.daily?.used || aiUsage.used)
+                            ? 'bg-[#e60012]'
+                            : 'bg-[#2a2a2a] border border-[#3a3a3a]'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                    <span className={`text-sm font-black ${(aiUsage.daily?.remaining ?? aiUsage.remaining) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {aiUsage.daily?.remaining ?? aiUsage.remaining}/{aiUsage.daily?.limit || 3}
+                    </span>
                   </div>
-                  <span className={`text-sm font-black ${aiUsage.remaining > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {aiUsage.remaining}/{aiUsage.limit}
-                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-lg border border-[#2a2a2a]">
+                  <span className="text-xs text-gray-400">📅 Tháng này</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#e60012] rounded-full transition-all"
+                        style={{ width: `${((aiUsage.monthly?.used || 0) / (aiUsage.monthly?.limit || 15)) * 100}%` }}
+                      />
+                    </div>
+                    <span className={`text-sm font-black ${(aiUsage.monthly?.remaining || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {aiUsage.monthly?.remaining || 0}/{aiUsage.monthly?.limit || 15}
+                    </span>
+                  </div>
                 </div>
               </div>
 
