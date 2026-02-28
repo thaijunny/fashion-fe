@@ -12,7 +12,6 @@ import {
     Mail,
     MapPin,
     Facebook,
-    Youtube,
     Instagram,
     Image as ImageIcon,
     Loader2,
@@ -33,7 +32,7 @@ export default function AdminSettingsPage() {
         email: '',
         address: '',
         facebook_link: '',
-        youtube_link: '',
+        tiktok_link: '',
         instagram_link: '',
         banner_image: '',
         studio_image: '',
@@ -41,12 +40,22 @@ export default function AdminSettingsPage() {
         bank_id: '',
         bank_account: '',
         bank_owner: '',
+        core_values: '[]',
     });
 
     useEffect(() => {
         const loadSettings = async () => {
             try {
                 const data = await fetchSettings();
+                // Pre-populate core values with defaults if empty
+                if (!data.core_values || data.core_values === '[]') {
+                    data.core_values = JSON.stringify([
+                        { emoji: '🔥', title: 'Sáng Tạo', desc: 'Luôn đổi mới trong thiết kế' },
+                        { emoji: '💎', title: 'Chất Lượng', desc: 'Chất liệu cao cấp, bền bỉ' },
+                        { emoji: '⚡', title: 'Khác Biệt', desc: 'Phong cách độc đáo, không trùng lặp' },
+                        { emoji: '🤝', title: 'Tận Tâm', desc: 'Hỗ trợ khách hàng 24/7' },
+                    ]);
+                }
                 setSettings(prev => ({ ...prev, ...data }));
             } catch (error) {
                 console.error('Failed to load settings', error);
@@ -238,15 +247,15 @@ export default function AdminSettingsPage() {
                             />
                         </div>
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 flex items-center justify-center bg-[#FF0000] text-white rounded-lg">
-                                <Youtube size={16} />
+                            <div className="w-8 h-8 flex items-center justify-center bg-black text-white rounded-lg">
+                                <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46V13.2a8.16 8.16 0 005.58 2.17V12a4.83 4.83 0 01-3.77-1.54V6.69h3.77z"/></svg>
                             </div>
                             <input
                                 type="text"
-                                value={settings.youtube_link}
-                                onChange={(e) => setSettings({ ...settings, youtube_link: e.target.value })}
+                                value={settings.tiktok_link}
+                                onChange={(e) => setSettings({ ...settings, tiktok_link: e.target.value })}
                                 className="flex-1 px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
-                                placeholder="Youtube Link"
+                                placeholder="TikTok Link"
                             />
                         </div>
                         <div className="flex items-center gap-3">
@@ -341,21 +350,126 @@ export default function AdminSettingsPage() {
                 </div>
             </div>
 
-            {/* About Page Content - Full Width */}
+            {/* About Page Content - Rich Text Editor */}
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-violet-50 text-violet-600 rounded-lg">
                         <FileText size={20} />
                     </div>
-                    <h3 className="font-bold text-gray-800">Nội dung trang &quot;Về Chúng Tôi&quot;</h3>
+                    <h3 className="font-bold text-gray-800">Nội dung trang &quot;About Us&quot;</h3>
                 </div>
-                <p className="text-xs text-gray-500">Nội dung sẽ hiển thị trên trang /about. Mỗi đoạn văn cách nhau bằng 1 dòng trống.</p>
-                <textarea
-                    value={settings.about_content}
-                    onChange={(e) => setSettings({ ...settings, about_content: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm min-h-[250px] bg-gray-50/50 font-mono"
-                    placeholder="Nhập nội dung giới thiệu về thương hiệu..."
+                <p className="text-xs text-gray-500">Nội dung sẽ hiển thị trên trang /about. Bạn có thể định dạng văn bản và chèn ảnh.</p>
+
+                {/* Toolbar */}
+                <div className="flex flex-wrap gap-1 border border-gray-200 rounded-t-lg p-2 bg-gray-50">
+                    <button type="button" onClick={() => document.execCommand('bold')} className="px-2 py-1 text-sm font-bold hover:bg-gray-200 rounded" title="Bold">B</button>
+                    <button type="button" onClick={() => document.execCommand('italic')} className="px-2 py-1 text-sm italic hover:bg-gray-200 rounded" title="Italic">I</button>
+                    <button type="button" onClick={() => document.execCommand('underline')} className="px-2 py-1 text-sm underline hover:bg-gray-200 rounded" title="Underline">U</button>
+                    <div className="w-px bg-gray-300 mx-1" />
+                    <button type="button" onClick={() => document.execCommand('formatBlock', false, 'h2')} className="px-2 py-1 text-sm font-bold hover:bg-gray-200 rounded" title="Heading">H2</button>
+                    <button type="button" onClick={() => document.execCommand('formatBlock', false, 'h3')} className="px-2 py-1 text-sm font-bold hover:bg-gray-200 rounded" title="Subheading">H3</button>
+                    <button type="button" onClick={() => document.execCommand('formatBlock', false, 'p')} className="px-2 py-1 text-sm hover:bg-gray-200 rounded" title="Paragraph">P</button>
+                    <div className="w-px bg-gray-300 mx-1" />
+                    <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="px-2 py-1 text-sm hover:bg-gray-200 rounded" title="Bullet List">• List</button>
+                    <button type="button" onClick={() => document.execCommand('insertOrderedList')} className="px-2 py-1 text-sm hover:bg-gray-200 rounded" title="Numbered List">1. List</button>
+                    <div className="w-px bg-gray-300 mx-1" />
+                    <label className="px-2 py-1 text-sm hover:bg-gray-200 rounded cursor-pointer flex items-center gap-1" title="Chèn ảnh">
+                        <Upload size={14} /> Ảnh
+                        <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !token) return;
+                            const url = await uploadFile(file, token);
+                            if (url) {
+                                document.execCommand('insertImage', false, getImageUrl(url));
+                            }
+                        }} />
+                    </label>
+                </div>
+
+                {/* Editable area */}
+                <div
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="w-full px-4 py-3 border border-gray-200 border-t-0 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm min-h-[300px] bg-white prose prose-sm max-w-none [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2"
+                    dangerouslySetInnerHTML={{ __html: settings.about_content }}
+                    onBlur={(e) => setSettings({ ...settings, about_content: (e.target as HTMLDivElement).innerHTML })}
                 />
+            </div>
+
+            {/* Core Values Editor */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                            <Megaphone size={20} />
+                        </div>
+                        <h3 className="font-bold text-gray-800">Giá Trị Cốt Lõi</h3>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const vals = JSON.parse(settings.core_values || '[]');
+                            vals.push({ emoji: '⭐', title: '', desc: '' });
+                            setSettings({ ...settings, core_values: JSON.stringify(vals) });
+                        }}
+                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                    >
+                        + Thêm giá trị
+                    </button>
+                </div>
+                <p className="text-xs text-gray-500">Các giá trị cốt lõi hiển thị trên trang About Us. Nếu để trống sẽ dùng mặc định.</p>
+                <div className="space-y-3">
+                    {(JSON.parse(settings.core_values || '[]') as { emoji: string; title: string; desc: string }[]).map((val, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                            <input
+                                type="text"
+                                value={val.emoji}
+                                onChange={(e) => {
+                                    const vals = JSON.parse(settings.core_values || '[]');
+                                    vals[idx].emoji = e.target.value;
+                                    setSettings({ ...settings, core_values: JSON.stringify(vals) });
+                                }}
+                                className="w-12 text-center text-xl px-1 py-1 border border-gray-200 rounded-lg bg-white"
+                                placeholder="🔥"
+                            />
+                            <div className="flex-1 space-y-2">
+                                <input
+                                    type="text"
+                                    value={val.title}
+                                    onChange={(e) => {
+                                        const vals = JSON.parse(settings.core_values || '[]');
+                                        vals[idx].title = e.target.value;
+                                        setSettings({ ...settings, core_values: JSON.stringify(vals) });
+                                    }}
+                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium bg-white"
+                                    placeholder="Tiêu đề"
+                                />
+                                <input
+                                    type="text"
+                                    value={val.desc}
+                                    onChange={(e) => {
+                                        const vals = JSON.parse(settings.core_values || '[]');
+                                        vals[idx].desc = e.target.value;
+                                        setSettings({ ...settings, core_values: JSON.stringify(vals) });
+                                    }}
+                                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white"
+                                    placeholder="Mô tả ngắn"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const vals = JSON.parse(settings.core_values || '[]');
+                                    vals.splice(idx, 1);
+                                    setSettings({ ...settings, core_values: JSON.stringify(vals) });
+                                }}
+                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-1"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

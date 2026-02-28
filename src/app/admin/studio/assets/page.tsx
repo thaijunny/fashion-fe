@@ -12,11 +12,11 @@ import {
 } from '@/lib/api';
 import {
     Plus, Trash2, Edit2, Palette,
-    Sticker, Type, Square, Shirt,
+    Sticker, Type, Square, Shirt, Fingerprint,
     X, Save, Upload, ImageIcon
 } from 'lucide-react';
 
-type TabType = 'colors' | 'stickers' | 'icons' | 'shapes' | 'fonts' | 'templates';
+type TabType = 'colors' | 'stickers' | 'icons' | 'shapes' | 'fonts' | 'patterns' | 'templates';
 
 export default function AdminStudioAssetsPage() {
     const { token } = useAuth();
@@ -58,7 +58,7 @@ export default function AdminStudioAssetsPage() {
             } else if (activeTab === 'templates') {
                 data = await fetchGarmentTemplates();
             } else {
-                const assetType = activeTab === 'stickers' ? 'sticker' : activeTab === 'icons' ? 'icon' : activeTab === 'shapes' ? 'shape' : 'font';
+                const assetType = activeTab === 'stickers' ? 'sticker' : activeTab === 'icons' ? 'icon' : activeTab === 'shapes' ? 'shape' : activeTab === 'patterns' ? 'pattern' : 'font';
                 data = await fetchStudioAssets(assetType);
             }
             setItems(data);
@@ -87,7 +87,7 @@ export default function AdminStudioAssetsPage() {
             if (activeTab === 'templates') {
                 if (item.front_image) setFrontPreview(getImageUrl(item.front_image));
                 if (item.back_image) setBackPreview(getImageUrl(item.back_image));
-            } else if (['stickers', 'icons'].includes(activeTab) && item.url) {
+            } else if (['stickers', 'icons', 'patterns'].includes(activeTab) && item.url) {
                 setFilePreview(getImageUrl(item.url));
             }
         } else {
@@ -133,7 +133,7 @@ export default function AdminStudioAssetsPage() {
             let submitFormData = { ...formData };
 
             // Handle file uploads for stickers/icons
-            if (['stickers', 'icons'].includes(activeTab)) {
+            if (['stickers', 'icons', 'patterns'].includes(activeTab)) {
                 if (selectedFile) {
                     const url = await uploadFile(selectedFile, token);
                     if (!url) { showToast('Upload ảnh thất bại', 'error'); setIsSaving(false); return; }
@@ -169,7 +169,7 @@ export default function AdminStudioAssetsPage() {
                 if (editingItem) await updateGarmentTemplate(editingItem.id, submitFormData, token);
                 else await createGarmentTemplate(submitFormData, token);
             } else {
-                const assetType = activeTab === 'stickers' ? 'sticker' : activeTab === 'icons' ? 'icon' : activeTab === 'shapes' ? 'shape' : 'font';
+                const assetType = activeTab === 'stickers' ? 'sticker' : activeTab === 'icons' ? 'icon' : activeTab === 'shapes' ? 'shape' : activeTab === 'patterns' ? 'pattern' : 'font';
                 const data = { ...submitFormData, type: assetType };
                 if (editingItem) await updateStudioAsset(editingItem.id, data, token);
                 else await createStudioAsset(data, token);
@@ -248,7 +248,7 @@ export default function AdminStudioAssetsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">Quản lý Studio</h1>
-                    <p className="text-gray-500 mt-1">Cấu hình bảng màu, sticker, icon, font chữ và phôi áo cho Design Studio</p>
+                    <p className="text-gray-500 mt-1">Cấu hình bảng màu, sticker, icon, font chữ, họa tiết và phôi áo cho Design Studio</p>
                 </div>
                 <button onClick={() => handleOpenModal()}
                     className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 uppercase italic text-sm">
@@ -264,6 +264,7 @@ export default function AdminStudioAssetsPage() {
                     { id: 'icons', label: 'Icons', icon: Sticker },
                     { id: 'shapes', label: 'Shapes', icon: Square },
                     { id: 'fonts', label: 'Fonts', icon: Type },
+                    { id: 'patterns', label: 'Họa tiết', icon: Fingerprint },
                     { id: 'templates', label: 'Phôi áo', icon: Shirt },
                 ] as const).map((tab) => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -373,9 +374,9 @@ export default function AdminStudioAssetsPage() {
                                 )}
 
                                 {/* Stickers / Icons — FILE UPLOAD */}
-                                {['stickers', 'icons'].includes(activeTab) && (
+                                {['stickers', 'icons', 'patterns'].includes(activeTab) && (
                                     <FileUploadBox
-                                        label={activeTab === 'stickers' ? 'Ảnh sticker' : 'Ảnh icon'}
+                                        label={activeTab === 'stickers' ? 'Ảnh sticker' : activeTab === 'patterns' ? 'Ảnh họa tiết' : 'Ảnh icon'}
                                         preview={filePreview}
                                         onClear={() => { setSelectedFile(null); setFilePreview(''); }}
                                         onClick={() => fileInputRef.current?.click()}
@@ -494,7 +495,8 @@ export default function AdminStudioAssetsPage() {
                                             />
                                         </div>
 
-                                        <div>
+                                        {/* Hidden Design Area Settings (Simple mode) */}
+                                        <div className="hidden">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Vùng in mặt trước (% từ cạnh)</label>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {(['left', 'top', 'right', 'bottom'] as const).map(k => (
@@ -507,7 +509,7 @@ export default function AdminStudioAssetsPage() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <div>
+                                        <div className="hidden">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Vùng in mặt sau (% từ cạnh)</label>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {(['left', 'top', 'right', 'bottom'] as const).map(k => (

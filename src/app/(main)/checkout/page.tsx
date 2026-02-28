@@ -68,7 +68,12 @@ export default function CheckoutPage() {
         if (user) {
             setFormData(prev => ({
                 ...prev,
-                full_name: user.full_name || ''
+                full_name: user.full_name || '',
+                phone_number: (user as any).phone_number || '',
+                province: (user as any).province || '',
+                district: (user as any).district || '',
+                ward: (user as any).ward || '',
+                street: (user as any).street || '',
             }));
         }
     }, [user]);

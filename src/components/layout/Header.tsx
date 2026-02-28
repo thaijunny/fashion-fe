@@ -14,7 +14,7 @@ const navLinks = [
   { href: '/products', label: 'Sản Phẩm' },
   { href: '/studio', label: 'Design Studio' },
   { href: '/design-orders', label: 'Đơn Thiết Kế' },
-  { href: '/about', label: 'Về Chúng Tôi' },
+  { href: '/about', label: 'About Us' },
 ];
 
 export default function Header() {
@@ -61,16 +61,11 @@ export default function Header() {
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
-          {/* Logo */}
+          {/* Brand Name */}
           <Link href="/" className="flex-shrink-0">
-            <Image
-              src="/logo.jpg"
-              alt="UNTYPED CLOTHING"
-              width={140}
-              height={50}
-              className="h-10 md:h-12 w-auto"
-              priority
-            />
+            <span className="text-white font-black text-xl md:text-2xl uppercase italic tracking-tighter hover:text-[#e60012] transition-colors">
+             
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

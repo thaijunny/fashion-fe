@@ -315,16 +315,20 @@ export async function createProduct(data: Partial<Product>, token: string): Prom
 export async function fetchProducts(options: {
   category?: string;
   search?: string;
+  sizes?: string[];
+  colors?: string[];
   page?: number;
   limit?: number;
   isAdminView?: boolean;
   token?: string;
 } = {}): Promise<{ items: Product[]; total: number; totalPages: number }> {
   try {
-    const { category, search, page, limit, isAdminView, token } = options;
+    const { category, search, sizes, colors, page, limit, isAdminView, token } = options;
     const query = new URLSearchParams();
     if (category) query.set('category', category);
     if (search) query.set('search', search);
+    if (sizes && sizes.length > 0) query.set('sizes', sizes.join(','));
+    if (colors && colors.length > 0) query.set('colors', colors.join(','));
     if (page) query.set('page', page.toString());
     if (limit) query.set('limit', limit.toString());
     if (isAdminView) query.set('isAdminView', 'true');
@@ -379,6 +383,55 @@ export async function deleteProduct(id: string, token: string): Promise<boolean>
   } catch {
     return false;
   }
+}
+
+export async function hardDeleteProduct(id: string, token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/products/${id}/hard`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Profile APIs
+export async function updateProfile(data: { 
+  full_name?: string; 
+  phone_number?: string; 
+  address?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  street?: string;
+}, token: string) {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Cập nhật thất bại'); }
+  return await res.json();
+}
+
+export async function changePassword(data: { current_password: string; new_password: string }, token: string) {
+  const res = await fetch(`${API_URL}/auth/me/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Đổi mật khẩu thất bại'); }
+  return await res.json();
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
@@ -800,11 +853,23 @@ export async function downloadDesignOrderZip(id: string, token: string) {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Tải xuống thất bại');
+  
+  // Try to get filename from Content-Disposition header
+  const disposition = res.headers.get('Content-Disposition');
+  let filename = `design_order_${id}.zip`;
+  if (disposition && disposition.indexOf('attachment') !== -1) {
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+    const matches = filenameRegex.exec(disposition);
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, '');
+    }
+  }
+
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `design_order_${id}.zip`;
+  a.download = filename;
   a.click();
   window.URL.revokeObjectURL(url);
 }

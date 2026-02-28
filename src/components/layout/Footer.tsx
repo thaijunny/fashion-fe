@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import { Instagram, Facebook, Mail, Phone, MapPin } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
 const footerLinks = {
@@ -28,10 +28,16 @@ const footerLinks = {
   ],
 };
 
+const TikTokIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46V13.2a8.16 8.16 0 005.58 2.17V12a4.83 4.83 0 01-3.77-1.54V6.69h3.77z"/>
+  </svg>
+);
+
 const socialLinksData = (settings: any) => [
   { href: settings.instagram_link || 'https://instagram.com', icon: Instagram, label: 'Instagram' },
   { href: settings.facebook_link || 'https://facebook.com', icon: Facebook, label: 'Facebook' },
-  { href: settings.youtube_link || 'https://youtube.com', icon: Youtube, label: 'Youtube' },
+  { href: settings.tiktok_link || 'https://tiktok.com', icon: TikTokIcon, label: 'TikTok' },
 ];
 
 export default function Footer() {

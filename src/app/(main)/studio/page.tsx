@@ -49,6 +49,7 @@ import {
   ShoppingBag,
   Sparkles,
   StickyNote as Sticker,
+  Fingerprint,
   Upload,
   Trash2,
   Copy,
@@ -140,15 +141,17 @@ function StudioPageContent() {
   const [viewSide, setViewSide] = useState<'front' | 'back'>('front');
   const [selectedSize, setSelectedSize] = useState<string>('L');
   const [sizeOptions, setSizeOptions] = useState<any[]>([]);
-  const [selectedProductColor, setSelectedProductColor] = useState<'white' | 'black'>('white');
+  const [selectedProductColor, setSelectedProductColor] = useState<string>('#ffffff');
+  const [garmentColors, setGarmentColors] = useState<any[]>([]);
   const [colorPalette, setColorPalette] = useState<string[]>([]);
   const [stickers, setStickers] = useState<any[]>([]);
   const [icons, setIcons] = useState<any[]>([]);
   const [shapes, setShapes] = useState<any[]>([]);
   const [fontOptions, setFontOptions] = useState<any[]>([]);
   const [textTemplates, setTextTemplates] = useState<any[]>([]);
+  const [patterns, setPatterns] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'ai-gallery' | 'my-projects'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'shapes' | 'images' | 'stickers' | 'patterns' | 'ai-gallery' | 'my-projects'>('templates');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -382,21 +385,27 @@ function StudioPageContent() {
 
     const loadData = async () => {
       try {
-        const [colors, dbStickers, dbIcons, dbShapes, dbFonts, templates, sizes] = await Promise.all([
+        const [colors, dbStickers, dbIcons, dbShapes, dbFonts, dbPatterns, templates, sizes] = await Promise.all([
           fetchStudioColors(),
           fetchStudioAssets('sticker'),
           fetchStudioAssets('icon'),
           fetchStudioAssets('shape'),
           fetchStudioAssets('font'),
+          fetchStudioAssets('pattern'),
           fetchGarmentTemplates(),
           fetchSizes()
         ]);
 
-        if (colors.length) setColorPalette(colors.map((c: any) => c.hex_code));
+        if (colors.length) {
+          setGarmentColors(colors);
+          setColorPalette(colors.map((c: any) => c.hex_code));
+          if (colors[0]?.hex_code) setSelectedProductColor(colors[0].hex_code);
+        }
         if (dbStickers.length) setStickers(dbStickers);
         if (dbIcons.length) setIcons(dbIcons);
         if (dbShapes.length) setShapes(dbShapes);
         if (dbFonts.length) setFontOptions(dbFonts);
+        if (dbPatterns.length) setPatterns(dbPatterns);
         if (sizes.length) setSizeOptions(sizes);
 
         // Map garment templates to studio format
@@ -618,6 +627,11 @@ function StudioPageContent() {
       setOrderForm(f => ({
         ...f,
         full_name: user?.full_name || '',
+        phone_number: (user as any)?.phone_number || '',
+        province: (user as any)?.province || '',
+        district: (user as any)?.district || '',
+        ward: (user as any)?.ward || '',
+        street: (user as any)?.street || '',
         payment_method: 'cod'
       }));
       // Generate order code for QR display
@@ -704,10 +718,10 @@ function StudioPageContent() {
         return;
       }
 
-      // Paste: Ctrl+V
+      // Paste: Ctrl+V — element paste is handled here only if no clipboard image
+      // Clipboard image paste is handled by the 'paste' event listener below
       if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isTyping) {
-        e.preventDefault();
-        pasteElement();
+        // Don't preventDefault here — let the paste event fire for clipboard images
         return;
       }
 
@@ -721,6 +735,78 @@ function StudioPageContent() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElementIds, editingTextId, historyIndex, history]);
+
+  // Clipboard paste handler — supports pasting images from clipboard
+  React.useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Check if user is typing in an input
+      const activeElement = document.activeElement;
+      const tagName = activeElement?.tagName.toLowerCase();
+      const isTyping = tagName === 'input' || tagName === 'textarea' ||
+        activeElement?.getAttribute('contenteditable') === 'true' ||
+        editingTextId !== null;
+      if (isTyping) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) {
+        // No clipboard data — fall back to element paste
+        pasteElement();
+        return;
+      }
+
+      // Check for image in clipboard
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          imageFile = items[i].getAsFile();
+          break;
+        }
+      }
+
+      if (imageFile && token) {
+        e.preventDefault();
+        try {
+          const serverPath = await uploadFile(imageFile, token);
+          if (!serverPath) {
+            showToast('Dán ảnh thất bại', 'error');
+            return;
+          }
+          // Add to user uploads gallery so it persists when project is saved
+          setUserUploads(prev => [serverPath, ...prev]);
+          // Create image to get natural dimensions then add to canvas
+          const img = new window.Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const maxWidth = 200;
+            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+            const newElement: DesignElement = {
+              id: `image-${Date.now()}`,
+              type: 'image',
+              x: 100,
+              y: 150,
+              width: img.width * scale,
+              height: img.height * scale,
+              content: serverPath,
+              opacity: 100,
+            };
+            setElements(prev => [...prev, newElement]);
+            setSelectedElementIds([newElement.id]);
+          };
+          img.src = getImageUrl(serverPath);
+          showToast('Đã dán ảnh từ clipboard!', 'success');
+        } catch (err) {
+          console.error('Paste image error:', err);
+          showToast('Dán ảnh thất bại', 'error');
+        }
+      } else {
+        // No image in clipboard — fall back to element paste
+        pasteElement();
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [token, editingTextId, elements]);
 
   // Mouse move handler for dragging
   React.useEffect(() => {
@@ -1488,14 +1574,31 @@ function StudioPageContent() {
       });
 
       ctx.save();
-      if (selectedProductColor === 'black') {
-        ctx.filter = 'invert(1) grayscale(1) brightness(0.15)';
-      } else {
-        ctx.filter = 'none';
-      }
+      // Draw product image base
       ctx.drawImage(productImg, 0, 0, canvas.width, canvas.height);
+      
+      // Apply color tinting using multiply and destination-in to preserve texture
+      if (selectedProductColor && selectedProductColor !== '#ffffff' && selectedProductColor !== 'white') {
+        // Create an offscreen canvas for the tint layer to clip it properly
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = canvas.width;
+        offCanvas.height = canvas.height;
+        const offCtx = offCanvas.getContext('2d');
+        if (offCtx) {
+          // 1. Draw target color
+          offCtx.fillStyle = selectedProductColor;
+          offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+          
+          // 2. Clip to product image alpha
+          offCtx.globalCompositeOperation = 'destination-in';
+          offCtx.drawImage(productImg, 0, 0, offCanvas.width, offCanvas.height);
+          
+          // 3. Draw tinted layer back to main canvas with multiply
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      }
       ctx.restore();
-      ctx.filter = 'none'; // Reset for elements
 
       // Calculate design area
       const designAreaLeft = (currentView.designArea.left / 100) * canvas.width;
@@ -1862,6 +1965,7 @@ function StudioPageContent() {
             { id: 'shapes', icon: Square, label: 'Shapes' },
             { id: 'images', icon: ImageIcon, label: 'Upload' },
             { id: 'stickers', icon: Sticker, label: 'Stickers' },
+            { id: 'patterns', icon: Fingerprint, label: 'Họa tiết' },
           ].map((tool) => (
             <button
               key={tool.id}
@@ -1951,27 +2055,48 @@ function StudioPageContent() {
 
                 {/* Garment Color Selector */}
                 <h3 className="text-white font-bold mb-3">Màu áo</h3>
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => setSelectedProductColor('white')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'white'
-                      ? 'border-white bg-white text-black'
-                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                      }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
-                    Trắng
-                  </button>
-                  <button
-                    onClick={() => setSelectedProductColor('black')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === 'black'
-                      ? 'border-white bg-[#1a1a1a] text-white'
-                      : 'border-[#2a2a2a] text-gray-400 hover:border-white'
-                      }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
-                    Đen
-                  </button>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {garmentColors.length > 0 ? (
+                    garmentColors.map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setSelectedProductColor(color.hex_code)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${selectedProductColor === color.hex_code
+                          ? 'border-white bg-[#1a1a1a] text-white shadow-lg'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full border border-gray-600 flex-shrink-0"
+                          style={{ backgroundColor: color.hex_code }}
+                        />
+                        <span className="text-xs truncate">{color.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setSelectedProductColor('#ffffff')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === '#ffffff'
+                          ? 'border-white bg-white text-black'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div className="w-4 h-4 rounded-full border border-gray-300 bg-white" />
+                        Trắng
+                      </button>
+                      <button
+                        onClick={() => setSelectedProductColor('#111111')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all ${selectedProductColor === '#111111'
+                          ? 'border-white bg-[#1a1a1a] text-white'
+                          : 'border-[#2a2a2a] text-gray-400 hover:border-white'
+                          }`}
+                      >
+                        <div className="w-4 h-4 rounded-full border border-gray-600 bg-black" />
+                        Đen
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Front/Back Toggle */}
@@ -2181,6 +2306,41 @@ function StudioPageContent() {
                 </div>
               </>
             )}
+
+            {activeTab === 'patterns' && (
+              <>
+                <h3 className="text-white font-bold mb-4">Họa tiết & Logo</h3>
+                {patterns.length === 0 ? (
+                  <div className="py-8 bg-[#1a1a1a] rounded border border-dashed border-[#2a2a2a] text-center">
+                    <Fingerprint size={32} className="mx-auto mb-2 text-gray-600" />
+                    <p className="text-gray-600 text-xs">Chưa có họa tiết nào</p>
+                    <p className="text-gray-700 text-[10px] mt-1">Admin có thể thêm họa tiết trong trang quản lý</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {patterns.map((pattern, index) => {
+                      const patternUrl = pattern.url || pattern;
+                      return (
+                        <button
+                          key={pattern.id || index}
+                          onClick={() => addStickerElement(patternUrl)}
+                          className="group relative aspect-square bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden hover:border-[#e60012] transition-all"
+                        >
+                          <img src={getImageUrl(patternUrl)} alt={pattern.name || 'pattern'} className="w-full h-full object-contain p-2" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
+                            <Plus className="text-white" size={16} />
+                            {pattern.name && <span className="text-white text-[9px] mt-1 px-1 truncate max-w-full">{pattern.name}</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-gray-600 text-[10px] mt-3 italic text-center">
+                  Click vào họa tiết để thêm vào thiết kế
+                </p>
+              </>
+            )}
             {activeTab === 'my-projects' && (
               <>
                 <h3 className="text-white font-bold mb-4">Dự án của tôi</h3>
@@ -2265,17 +2425,28 @@ function StudioPageContent() {
             }}
           >
             {/* Product Template Background Image */}
-            <img
-              src={getImageUrl(currentView.image)}
-              alt={`${selectedProduct.name} - ${currentView.name}`}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{
-                opacity: 1,
-                filter: selectedProductColor === 'black'
-                  ? 'invert(1) grayscale(1) brightness(0.15)'
-                  : 'none'
-              }}
-            />
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+              <img
+                src={getImageUrl(currentView.image)}
+                alt={`${selectedProduct.name} - ${currentView.name}`}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: selectedProductColor,
+                  mixBlendMode: 'multiply',
+                  WebkitMaskImage: `url(${getImageUrl(currentView.image)})`,
+                  WebkitMaskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center',
+                  maskImage: `url(${getImageUrl(currentView.image)})`,
+                  maskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                }}
+              />
+            </div>
 
             {/* Design Area */}
             <div
@@ -2475,10 +2646,7 @@ function StudioPageContent() {
               ))}
             </div>
 
-            {/* Template Label */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-gray-500">
-              {selectedProduct.name} ({currentView.name}) • {selectedProduct.width}x{selectedProduct.height}
-            </div>
+            {/* Template Label Removed */}
           </div>
         </main>
 
@@ -3134,7 +3302,7 @@ function StudioPageContent() {
                   >
                     {/* Front Side */}
                     <div
-                      className="absolute inset-0 flex items-center justify-center"
+                      className="absolute inset-0 flex items-center justify-center font-bold"
                       style={{
                         backfaceVisibility: 'hidden',
                       }}
@@ -3144,10 +3312,20 @@ function StudioPageContent() {
                           src={getImageUrl(selectedProduct.variants.front.image)}
                           alt="Front"
                           className="max-h-[450px] object-contain"
+                        />
+                        <div
+                          className="absolute inset-0 pointer-events-none"
                           style={{
-                            filter: selectedProductColor === 'black'
-                              ? 'invert(1) grayscale(1) brightness(0.15)'
-                              : 'none'
+                            backgroundColor: selectedProductColor,
+                            mixBlendMode: 'multiply',
+                            WebkitMaskImage: `url(${getImageUrl(selectedProduct.variants.front.image)})`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url(${getImageUrl(selectedProduct.variants.front.image)})`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
                           }}
                         />
                         {/* Front Design Overlay */}
@@ -3224,15 +3402,12 @@ function StudioPageContent() {
                             </div>
                           ))}
                         </div>
-                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#e60012] px-3 py-1 rounded text-xs font-bold text-white">
-                          MẶT TRƯỚC
-                        </div>
                       </div>
                     </div>
 
                     {/* Back Side */}
                     <div
-                      className="absolute inset-0 flex items-center justify-center"
+                      className="absolute inset-0 flex items-center justify-center font-bold"
                       style={{
                         backfaceVisibility: 'hidden',
                         transform: 'rotateY(180deg)',
@@ -3243,10 +3418,20 @@ function StudioPageContent() {
                           src={getImageUrl(selectedProduct.variants.back.image)}
                           alt="Back"
                           className="max-h-[450px] object-contain"
+                        />
+                        <div
+                          className="absolute inset-0 pointer-events-none"
                           style={{
-                            filter: selectedProductColor === 'black'
-                              ? 'invert(1) grayscale(1) brightness(0.15)'
-                              : 'none'
+                            backgroundColor: selectedProductColor,
+                            mixBlendMode: 'multiply',
+                            WebkitMaskImage: `url(${getImageUrl(selectedProduct.variants.back.image)})`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url(${getImageUrl(selectedProduct.variants.back.image)})`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
                           }}
                         />
                         {/* Back Design Overlay */}
@@ -3322,9 +3507,6 @@ function StudioPageContent() {
                               )}
                             </div>
                           ))}
-                        </div>
-                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2a2a2a] px-3 py-1 rounded text-xs font-bold text-white">
-                          MẶT SAU
                         </div>
                       </div>
                     </div>

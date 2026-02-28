@@ -54,32 +54,34 @@ export default function ProductCard({ product }: ProductCardProps) {
     >
       {/* Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-[#1a1a1a]">
-        {imageError ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a]">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[#e60012]/20 flex items-center justify-center">
-                <ShoppingBag className="w-8 h-8 text-[#e60012]" />
+        <Link href={`/product/${product.id}`} className="absolute inset-0 z-0">
+          {imageError ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a]">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-[#e60012]/20 flex items-center justify-center">
+                  <ShoppingBag className="w-8 h-8 text-[#e60012]" />
+                </div>
+                <span className="text-gray-500 text-sm">{product.name}</span>
               </div>
-              <span className="text-gray-500 text-sm">{product.name}</span>
             </div>
-          </div>
-        ) : (
-          <Image
-            src={getImageUrl(product.images[0])}
-            alt={product.name}
-            fill
-            className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
-              }`}
-            onError={() => setImageError(true)}
-          />
-        )}
+          ) : (
+            <Image
+              src={getImageUrl(product.images[0])}
+              alt={product.name}
+              fill
+              className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
+                }`}
+              onError={() => setImageError(true)}
+            />
+          )}
+        </Link>
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none z-10">
           {product.isNew && (
             <span className="badge-new">MỚI</span>
           )}
-          {product.isOnSale && discount > 0 && (
+          {discount > 0 && (
             <span className="badge-sale">-{discount}%</span>
           )}
           {product.isBestSeller && !product.isNew && (
@@ -89,10 +91,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Quick Actions */}
         <div
-          className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+          className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 z-20 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
             }`}
         >
           <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
             className="w-10 h-10 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[#e60012] transition-colors"
             aria-label="Add to wishlist"
           >
@@ -100,6 +103,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </button>
           <Link
             href={`/product/${product.id}`}
+            onClick={(e) => e.stopPropagation()}
             className="w-10 h-10 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[#e60012] transition-colors"
             aria-label="Quick view"
           >
@@ -109,7 +113,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Add to Cart Button */}
         <div
-          className={`absolute bottom-0 left-0 right-0 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
+          className={`absolute bottom-0 left-0 right-0 transition-all duration-300 z-20 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
             }`}
         >
           <button
@@ -162,10 +166,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="text-[#e60012] font-bold text-lg">
             {formatPrice(product.price)}
           </span>
-          {product.originalPrice && (
-            <span className="text-gray-500 line-through text-sm">
-              {formatPrice(product.originalPrice)}
-            </span>
+          {product.originalPrice !== undefined && product.originalPrice > product.price && product.originalPrice > 0 && (
+            <>
+              <span className="text-gray-500 line-through text-sm">
+                {formatPrice(product.originalPrice)}
+              </span>
+              <span className="text-[#e60012] text-xs font-semibold bg-[#e60012]/10 px-1.5 py-0.5 rounded">
+                -{discount}%
+              </span>
+            </>
           )}
         </div>
 
