@@ -60,56 +60,64 @@ export default function HomePage() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 container-street text-center">
+        <div className="relative z-10 container-street text-center px-4">
           <h1
-            className="text-5xl md:text-7xl lg:text-9xl font-extrabold mb-6 glitch-text tracking-tight"
+            className="text-4xl md:text-7xl lg:text-9xl font-extrabold mb-4 md:mb-6 glitch-text tracking-tight"
           >
             <span className="text-white">UNTYPED</span>
           </h1>
-          <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl mx-auto">
+          <p className="text-base md:text-xl lg:text-2xl text-white mb-6 md:mb-8 max-w-2xl mx-auto px-4 md:px-0">
             Thời trang đường phố cho những ai dám sống khác biệt.
-            <br />
+            <br className="hidden md:block" />
             Thiết kế riêng. Phong cách riêng.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/products" className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
+            <Link href="/products" className="w-full sm:w-auto px-8 py-3 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center justify-center gap-2 rounded font-bold uppercase tracking-wider text-sm shadow-lg shadow-red-600/20">
               Khám Phá Ngay
-              <ArrowRight className="ml-2" size={20} />
+              <ArrowRight size={18} />
             </Link>
-            <Link href="/studio" className="px-4 py-2 bg-[#e60012] text-white hover:bg-[#ff1a1a] transition-colors flex items-center gap-2 rounded">
-              <Sparkles className="mr-2" size={20} />
+            <Link href="/studio" className="w-full sm:w-auto px-8 py-3 bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 rounded font-bold uppercase tracking-wider text-sm">
+              <Sparkles size={18} />
               Design Studio
             </Link>
           </div>
         </div>
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
-            <div className="w-1 h-3 bg-white rounded-full animate-pulse" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:block animate-bounce">
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+            <div className="w-1 h-3 bg-white/50 rounded-full" />
           </div>
         </div>
       </section>
 
       {/* Features Bar */}
-      <section className="bg-[#e60012] py-4">
+      <section className="bg-[#e60012] py-6 relative z-20">
         <div className="container-street">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white text-center">
-            <div className="flex items-center justify-center gap-2">
-              <Truck size={20} />
-              <span className="text-sm font-medium">Freeship từ 500K</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 text-white text-center">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-1 md:mb-0">
+                <Truck size={18} />
+              </div>
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Freeship từ 500K</span>
             </div>
-            <div className="flex items-center justify-center gap-2">
-              <Shield size={20} />
-              <span className="text-sm font-medium">Bảo hành 30 ngày</span>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-1 md:mb-0">
+                <Shield size={18} />
+              </div>
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Bảo hành 30 ngày</span>
             </div>
-            <div className="flex items-center justify-center gap-2">
-              <RotateCcw size={20} />
-              <span className="text-sm font-medium">Đổi trả dễ dàng</span>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-1 md:mb-0">
+                <RotateCcw size={18} />
+              </div>
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Đổi trả dễ dàng</span>
             </div>
-            <div className="flex items-center justify-center gap-2">
-              <Sparkles size={20} />
-              <span className="text-sm font-medium">Thiết kế độc quyền</span>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-1 md:mb-0">
+                <Sparkles size={18} />
+              </div>
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Thiết kế độc quyền</span>
             </div>
           </div>
         </div>

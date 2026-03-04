@@ -154,51 +154,51 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
+      <div className="p-3 md:p-4">
         <Link href={`/product/${product.id}`}>
-          <h3 className="text-white font-medium mb-2 line-clamp-2 hover:text-[#e60012] transition-colors">
+          <h3 className="text-white font-medium mb-1 md:mb-2 line-clamp-2 hover:text-[#e60012] transition-colors text-xs md:text-base">
             {product.name}
           </h3>
         </Link>
-
+        
         {/* Sizes Preview */}
-        <div className="flex gap-1 mb-3">
-          {product.sizes.slice(0, 4).map((size) => (
+        <div className="flex flex-wrap gap-1 mb-2 md:mb-3">
+          {product.sizes.slice(0, 3).map((size) => (
             <span
               key={size.id}
-              className="text-xs text-gray-500 px-2 py-0.5 border border-[#2a2a2a]"
+              className="text-[9px] md:text-xs text-gray-500 px-1.5 md:px-2 py-0.5 border border-[#2a2a2a]"
             >
               {size.name}
             </span>
           ))}
-          {product.sizes.length > 4 && (
-            <span className="text-xs text-gray-500">+{product.sizes.length - 4}</span>
+          {product.sizes.length > 3 && (
+            <span className="text-[9px] md:text-xs text-gray-500">+{product.sizes.length - 3}</span>
           )}
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2">
-          <span className="text-[#e60012] font-bold text-lg">
+        <div className="flex flex-wrap items-center gap-1 md:gap-2">
+          <span className="text-[#e60012] font-bold text-sm md:text-lg">
             {formatPrice(product.price)}
           </span>
           {product.originalPrice !== undefined && product.originalPrice > product.price && product.originalPrice > 0 && (
-            <>
-              <span className="text-gray-500 line-through text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 line-through text-[10px] md:text-sm">
                 {formatPrice(product.originalPrice)}
               </span>
-              <span className="text-[#e60012] text-xs font-semibold bg-[#e60012]/10 px-1.5 py-0.5 rounded">
+              <span className="text-[#e60012] text-[8px] md:text-xs font-semibold bg-[#e60012]/10 px-1 md:px-1.5 py-0.5 rounded">
                 -{discount}%
               </span>
-            </>
+            </div>
           )}
         </div>
 
         {/* Color Options */}
-        <div className="flex gap-2 mt-3">
-          {product.colors.map((color) => (
+        <div className="flex flex-wrap gap-1.5 mt-2 md:mt-3">
+          {product.colors.slice(0, 5).map((color) => (
             <button
               key={color.id}
-              className="w-5 h-5 rounded-full border-2 border-[#2a2a2a] hover:border-white transition-colors"
+              className="w-4 h-4 md:w-5 md:h-5 rounded-full border border-[#2a2a2a] hover:border-white transition-colors"
               style={{ backgroundColor: color.hexCode }}
               aria-label={`Color: ${color.name}`}
             />
