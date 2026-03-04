@@ -65,14 +65,29 @@ export default function ProductCard({ product }: ProductCardProps) {
               </div>
             </div>
           ) : (
-            <Image
-              src={getImageUrl(product.images[0])}
-              alt={product.name}
-              fill
-              className={`object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
+            <>
+              {/* Primary image */}
+              <Image
+                src={getImageUrl(product.images[0])}
+                alt={product.name}
+                fill
+                className={`object-cover transition-all duration-500 ${
+                  isHovered && product.images.length > 1 ? 'opacity-0' : 'opacity-100'
                 }`}
-              onError={() => setImageError(true)}
-            />
+                onError={() => setImageError(true)}
+              />
+              {/* Second image on hover */}
+              {product.images.length > 1 && (
+                <Image
+                  src={getImageUrl(product.images[1])}
+                  alt={`${product.name} - 2`}
+                  fill
+                  className={`object-cover transition-all duration-500 ${
+                    isHovered ? 'opacity-100 scale-105' : 'opacity-0 scale-100'
+                  }`}
+                />
+              )}
+            </>
           )}
         </Link>
 

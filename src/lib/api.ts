@@ -1027,3 +1027,54 @@ export async function fetchDashboardStats(token: string) {
     return null;
   }
 }
+
+// ── TESTIMONIAL APIs ──────────────────────────────────────────────────
+
+export async function fetchTestimonials() {
+  const res = await fetch(`${API_URL}/testimonials`);
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+export async function fetchAllTestimonials(token: string) {
+  const res = await fetch(`${API_URL}/testimonials/admin`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+export async function createTestimonial(data: any, token: string) {
+  const res = await fetch(`${API_URL}/testimonials`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create testimonial');
+  return await res.json();
+}
+
+export async function updateTestimonial(id: string, data: any, token: string) {
+  const res = await fetch(`${API_URL}/testimonials/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update testimonial');
+  return await res.json();
+}
+
+export async function deleteTestimonial(id: string, token: string) {
+  const res = await fetch(`${API_URL}/testimonials/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to delete testimonial');
+  return await res.json();
+}

@@ -2,28 +2,28 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Sparkles, Truck, Shield, RotateCcw } from 'lucide-react';
+import { ArrowRight, Sparkles, Truck, Shield, RotateCcw, Star, Quote } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
-import { fetchProducts, getFeaturedProducts, fetchCategories, getImageUrl } from '@/lib/api';
+import { fetchProducts, getFeaturedProducts, getImageUrl, fetchTestimonials } from '@/lib/api';
 import { Product } from '@/types';
 import { useState, useEffect } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 
 export default function HomePage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const { settings } = useSettings();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [prodData, catData] = await Promise.all([
+        const [prodData, testimonialsData] = await Promise.all([
           fetchProducts(),
-          fetchCategories(),
+          fetchTestimonials(),
         ]);
         setAllProducts(prodData.items);
-        setCategories(catData);
+        setTestimonials(testimonialsData);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -115,68 +115,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-16 md:py-24 bg-[#0a0a0a]">
-        <div className="container-street">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="section-title text-white font-extrabold">
-                Danh Mục Sản Phẩm
-              </h2>
-              <p className="text-gray-400 mt-4">Khám phá bộ sưu tập đa dạng của chúng tôi</p>
-            </div>
-            <Link
-              href="/products"
-              className="hidden md:flex items-center gap-2 text-[#e60012] hover:text-[#ff1a2e] transition-colors font-medium"
-            >
-              Xem tất cả <ArrowRight size={18} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categories.map((category, index) => (
-              <Link
-                key={category.id}
-                href={`/products?category=${category.slug}`}
-                className="group relative aspect-[3/4] overflow-hidden bg-[#1a1a1a] slide-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                {/* Category image */}
-                <div className="absolute inset-0 group-hover:scale-110 transition-transform duration-500">
-                  {category.image ? (
-                    <img
-                      src={getImageUrl(category.image)}
-                      alt={category.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] flex items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-[#e60012]/10 flex items-center justify-center">
-                        <span className="text-4xl">👕</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-white font-bold text-lg group-hover:text-[#e60012] transition-colors">
-                    {category.name}
-                  </h3>
-                  <p className="text-gray-400 text-sm">{category.productCount} sản phẩm</p>
-                </div>
-
-                {/* Hover Border */}
-                <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#e60012] transition-colors" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Featured Products Section */}
       <section className="py-16 md:py-24 bg-[#0f0f0f]">
         <div className="container-street">
@@ -211,6 +149,66 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      {/* Testimonials Section */}
+      {testimonials.length > 0 && (
+        <section className="py-16 md:py-24 bg-[#0f0f0f] relative overflow-hidden">
+          {/* Background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#e60012]/5 rounded-full blur-[200px]" />
+
+          <div className="container-street relative z-10">
+            <div className="text-center mb-12">
+              <h2 className="section-title text-white font-extrabold">
+                Khách Hàng Nhận Xét
+              </h2>
+              <p className="text-gray-400 mt-4">Những chia sẻ từ khách hàng đã trải nghiệm sản phẩm</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((t, index) => (
+                <div
+                  key={t.id}
+                  className="relative bg-[#1a1a1a] border border-[#2a2a2a] p-6 group hover:border-[#e60012]/30 transition-all duration-300 slide-up flex flex-col items-center text-center"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  {/* Circular Avatar */}
+                  <div className="w-40 h-40 rounded-full overflow-hidden bg-[#2a2a2a] border-4 border-[#2a2a2a] group-hover:border-[#e60012]/40 transition-colors mb-5 flex-shrink-0">
+                    {t.avatar_url ? (
+                      <img src={getImageUrl(t.avatar_url)} alt={t.customer_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#e60012] font-bold text-3xl bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a]">
+                        {t.customer_name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quote icon */}
+                  <Quote className="text-[#e60012]/30 mb-3" size={28} />
+
+                  {/* Content */}
+                  <p className="text-gray-300 leading-relaxed mb-4 text-sm line-clamp-4">
+                    {t.content}
+                  </p>
+
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star
+                        key={s}
+                        size={14}
+                        className={s <= t.rating ? 'text-[#f0ff00] fill-[#f0ff00]' : 'text-gray-700'}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Customer name */}
+                  <p className="text-white font-semibold text-sm">{t.customer_name}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Khách hàng</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Design Studio CTA */}
       <section className="py-16 md:py-24 bg-[#0a0a0a] relative overflow-hidden">

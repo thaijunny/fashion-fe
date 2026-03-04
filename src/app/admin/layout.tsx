@@ -18,7 +18,8 @@ import {
     Palette,
     Sparkles,
     ClipboardList,
-    FolderOpen
+    FolderOpen,
+    MessageSquareQuote
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -50,6 +51,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         { name: 'Đơn thiết kế', icon: ClipboardList, href: '/admin/design-orders' },
         { name: 'Thuộc tính', icon: SlidersHorizontal, href: '/admin/attributes' },
         { name: 'Người dùng', icon: Users, href: '/admin/users' },
+        { name: 'Nhận xét KH', icon: MessageSquareQuote, href: '/admin/testimonials' },
         { name: 'Thiết kế người dùng', icon: Sparkles, href: '/admin/studio/projects' },
         { name: 'Quản lý Studio', icon: Palette, href: '/admin/studio/assets' },
         { name: 'Cài đặt', icon: Settings, href: '/admin/settings' },

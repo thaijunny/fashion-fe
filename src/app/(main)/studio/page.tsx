@@ -2413,6 +2413,7 @@ function StudioPageContent() {
         <main
           ref={mainAreaRef}
           className="flex-1 bg-[#1a1a1a] flex items-center justify-center p-8 overflow-auto"
+          onClick={() => setSelectedElementIds([])}
         >
           <div
             ref={canvasRef}
@@ -2423,6 +2424,7 @@ function StudioPageContent() {
               minWidth: selectedProduct.width * (zoom / 100),
               minHeight: selectedProduct.height * (zoom / 100),
             }}
+            onClick={() => setSelectedElementIds([])}
           >
             {/* Product Template Background Image */}
             <div className="absolute inset-0 w-full h-full pointer-events-none">
