@@ -1268,19 +1268,39 @@ function StudioPageContent() {
         });
       };
 
-      // 1. Draw garment image
+      // 1. Draw garment image with color tinting
       const garmentUrl = selectedProduct?.variants?.[side]?.image;
       if (garmentUrl) {
         try {
           const garmentImg = await loadImage(garmentUrl);
           ctx.drawImage(garmentImg, 0, 0, w, h);
+
+          // Apply color tinting using multiply blend (same as download preview)
+          if (selectedProductColor && selectedProductColor !== '#ffffff' && selectedProductColor !== 'white') {
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = w;
+            offCanvas.height = h;
+            const offCtx = offCanvas.getContext('2d');
+            if (offCtx) {
+              // 1. Draw target color
+              offCtx.fillStyle = selectedProductColor;
+              offCtx.fillRect(0, 0, w, h);
+              // 2. Clip to product image alpha
+              offCtx.globalCompositeOperation = 'destination-in';
+              offCtx.drawImage(garmentImg, 0, 0, w, h);
+              // 3. Draw tinted layer back to main canvas with multiply
+              ctx.globalCompositeOperation = 'multiply';
+              ctx.drawImage(offCanvas, 0, 0);
+              ctx.globalCompositeOperation = 'source-over';
+            }
+          }
         } catch {
           // Fallback to solid color if garment fails to load
-          ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
+          ctx.fillStyle = selectedProductColor || '#ffffff';
           ctx.fillRect(0, 0, w, h);
         }
       } else {
-        ctx.fillStyle = selectedProductColor === 'black' ? '#1a1a1a' : '#ffffff';
+        ctx.fillStyle = selectedProductColor || '#ffffff';
         ctx.fillRect(0, 0, w, h);
       }
 
