@@ -456,16 +456,16 @@ export function formatPrice(price: number): string {
 }
 
 // Order APIs
-export async function fetchUserOrders(token: string) {
+export async function fetchUserOrders(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/orders`, {
+    const res = await fetch(`${API_URL}/orders?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { orders: [], totalPages: 1 };
     const data = await res.json();
-    return data.orders || [];
+    return { orders: data.orders || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return [];
+    return { orders: [], totalPages: 1 };
   }
 }
 
@@ -482,16 +482,16 @@ export async function fetchOrderById(id: string, token: string) {
   }
 }
 
-export async function fetchAllOrdersAdmin(token: string) {
+export async function fetchAllOrdersAdmin(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/orders/admin/all`, {
+    const res = await fetch(`${API_URL}/orders/admin/all?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { orders: [], totalPages: 1 };
     const data = await res.json();
-    return data.orders || [];
+    return { orders: data.orders || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return [];
+    return { orders: [], totalPages: 1 };
   }
 }
 
@@ -679,15 +679,16 @@ export async function deleteGarmentTemplate(id: string, token: string) {
 }
 
 // Admin Project APIs
-export async function fetchAllProjectsAdmin(token: string) {
+export async function fetchAllProjectsAdmin(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/projects/admin/all`, {
+    const res = await fetch(`${API_URL}/projects/admin/all?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return [];
-    return await res.json();
+    if (!res.ok) return { data: [], totalPages: 1 };
+    const data = await res.json();
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1 };
   } catch {
-    return [];
+    return { data: [], totalPages: 1 };
   }
 }
 
@@ -775,15 +776,16 @@ export async function fetchUserProjectById(id: string, token: string) {
   }
 }
 
-export async function fetchUserProjects(token: string) {
+export async function fetchUserProjects(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/projects`, {
+    const res = await fetch(`${API_URL}/projects?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return [];
-    return await res.json();
+    if (!res.ok) return { data: [], totalPages: 1 };
+    const data = await res.json();
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return [];
+    return { data: [], totalPages: 1 };
   }
 }
 
@@ -808,14 +810,15 @@ export async function createDesignOrder(data: any, token: string) {
   return await res.json();
 }
 
-export async function fetchMyDesignOrders(token: string) {
+export async function fetchMyDesignOrders(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/design-orders/my`, {
+    const res = await fetch(`${API_URL}/design-orders/my?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch { return []; }
+    if (!res.ok) return { data: [], totalPages: 1 };
+    const data = await res.json();
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
+  } catch { return { data: [], totalPages: 1 }; }
 }
 
 export async function fetchDesignOrderById(id: string, token: string) {
@@ -828,14 +831,15 @@ export async function fetchDesignOrderById(id: string, token: string) {
   } catch { return null; }
 }
 
-export async function fetchAllDesignOrdersAdmin(token: string) {
+export async function fetchAllDesignOrdersAdmin(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/design-orders`, {
+    const res = await fetch(`${API_URL}/design-orders?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch { return []; }
+    if (!res.ok) return { data: [], totalPages: 1 };
+    const data = await res.json();
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
+  } catch { return { data: [], totalPages: 1 }; }
 }
 
 export async function updateDesignOrderStatusAdmin(id: string, status: string, token: string) {
@@ -876,14 +880,15 @@ export async function downloadDesignOrderZip(id: string, token: string) {
 
 // ── USER MANAGEMENT APIs (Admin) ───────────────────────────────────
 
-export async function fetchAllUsersAdmin(token: string) {
+export async function fetchAllUsersAdmin(token: string, page: number = 1) {
   try {
-    const res = await fetch(`${API_URL}/users`, {
+    const res = await fetch(`${API_URL}/users?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch { return []; }
+    if (!res.ok) return { data: [], totalPages: 1 };
+    const data = await res.json();
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
+  } catch { return { data: [], totalPages: 1 }; }
 }
 
 export async function toggleBlockUser(id: string, token: string) {

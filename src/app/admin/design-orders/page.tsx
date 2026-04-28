@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { fetchAllDesignOrdersAdmin, updateDesignOrderStatusAdmin, downloadDesignOrderZip, formatPrice, getImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import {
-    Search, Eye, Download, ChevronDown, Clock, CheckCircle2, Printer, Truck, XCircle, Palette, Package
+    Search, Eye, Download, ChevronDown, Clock, CheckCircle2, Printer, Truck, XCircle, Palette, Package, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -25,6 +25,9 @@ export default function AdminDesignOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
 
     // Preview modal
     const [previewOrder, setPreviewOrder] = useState<any>(null);
@@ -37,12 +40,15 @@ export default function AdminDesignOrdersPage() {
     });
     const [updating, setUpdating] = useState(false);
 
-    const loadOrders = async () => {
+    const loadOrders = async (page: number) => {
         if (!token) return;
         setLoading(true);
         try {
-            const data = await fetchAllDesignOrdersAdmin(token);
-            setOrders(data);
+            const res = await fetchAllDesignOrdersAdmin(token, page);
+            setOrders(res.data);
+            setCurrentPage(res.currentPage);
+            setTotalPages(res.totalPages);
+            setTotalOrders(res.total || 0);
         } catch (e) {
             console.error(e);
         } finally {
@@ -50,7 +56,7 @@ export default function AdminDesignOrdersPage() {
         }
     };
 
-    useEffect(() => { loadOrders(); }, [token]);
+    useEffect(() => { loadOrders(currentPage); }, [token, currentPage]);
 
     const initiateStatusChange = (orderId: string, nextStatus: string) => {
         setConfirmModal({ isOpen: true, orderId, nextStatus });
@@ -64,7 +70,7 @@ export default function AdminDesignOrdersPage() {
         try {
             await updateDesignOrderStatusAdmin(orderId, nextStatus, token);
             showToast('Cập nhật trạng thái thành công!');
-            loadOrders();
+            loadOrders(currentPage);
         } catch (e: any) {
             showToast(e.message || 'Lỗi cập nhật', 'error');
         } finally {
@@ -227,6 +233,43 @@ export default function AdminDesignOrdersPage() {
                         </table>
                     </div>
                 )}
+
+                {/* Pagination Footer */}
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between rounded-b-2xl">
+                    <p className="text-sm text-gray-500 font-medium">
+                        Hiển thị <span className="text-gray-900 font-bold">{orders.length}</span> trong số <span className="text-gray-900 font-bold">{totalOrders}</span> đơn thiết kế
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1 || loading}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${currentPage === i + 1
+                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                        : 'text-gray-600 hover:bg-white hover:border-gray-300 border border-transparent'
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages || loading}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Preview Modal */}

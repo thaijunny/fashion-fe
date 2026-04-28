@@ -19,15 +19,20 @@ export default function DesignOrdersPage() {
     const { token } = useAuth();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         if (token) {
-            fetchMyDesignOrders(token).then(data => {
-                setOrders(data);
+            setLoading(true);
+            fetchMyDesignOrders(token, currentPage).then(res => {
+                setOrders(res.data);
+                setCurrentPage(res.currentPage);
+                setTotalPages(res.totalPages);
                 setLoading(false);
             });
         }
-    }, [token]);
+    }, [token, currentPage]);
 
     if (loading) {
         return (
@@ -112,6 +117,31 @@ export default function DesignOrdersPage() {
                             </div>
                         );
                     })}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between border-t border-[#2a2a2a] pt-6 mt-6">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                Trang {currentPage} / {totalPages}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    className="px-4 py-2 bg-[#111] border border-[#2a2a2a] text-white text-[10px] font-bold uppercase tracking-widest hover:border-[#e60012] disabled:opacity-50 disabled:hover:border-[#2a2a2a] transition-colors"
+                                >
+                                    Trước
+                                </button>
+                                <button
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    className="px-4 py-2 bg-[#111] border border-[#2a2a2a] text-white text-[10px] font-bold uppercase tracking-widest hover:border-[#e60012] disabled:opacity-50 disabled:hover:border-[#2a2a2a] transition-colors"
+                                >
+                                    Sau
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

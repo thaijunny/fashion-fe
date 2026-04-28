@@ -169,6 +169,8 @@ function StudioPageContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiUsage, setAiUsage] = useState({ used: 0, limit: 3, remaining: 3, daily: { used: 0, limit: 3, remaining: 3 }, monthly: { used: 0, limit: 15, remaining: 15 } });
   const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [currentProjectPage, setCurrentProjectPage] = useState(1);
+  const [totalProjectPages, setTotalProjectPages] = useState(1);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
@@ -499,12 +501,14 @@ function StudioPageContent() {
     }
   }, [selectedProduct, selectedSize, sizeOptions]);
 
-  const loadMyProjects = useCallback(async () => {
+  const loadMyProjects = useCallback(async (page: number) => {
     if (!token) return;
     setLoadingProjects(true);
     try {
-      const projects = await fetchUserProjects(token);
-      setMyProjects(projects);
+      const res = await fetchUserProjects(token, page);
+      setMyProjects(res.data);
+      setCurrentProjectPage(res.currentPage);
+      setTotalProjectPages(res.totalPages);
     } catch (err) {
       console.error('Error loading my projects:', err);
     } finally {
@@ -514,9 +518,9 @@ function StudioPageContent() {
 
   useEffect(() => {
     if (activeTab === 'my-projects') {
-      loadMyProjects();
+      loadMyProjects(currentProjectPage);
     }
-  }, [activeTab, loadMyProjects]);
+  }, [activeTab, currentProjectPage, loadMyProjects]);
 
   const handlePlaceOrder = async () => {
     if (!user || !token || !projectId || !selectedProduct) return;
@@ -2422,6 +2426,25 @@ function StudioPageContent() {
                         </div>
                       </div>
                     ))}
+                    {totalProjectPages > 1 && (
+                      <div className="flex items-center justify-between mt-4">
+                        <button
+                          disabled={currentProjectPage === 1}
+                          onClick={() => setCurrentProjectPage(p => Math.max(1, p - 1))}
+                          className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-[10px] rounded hover:border-[#e60012] disabled:opacity-50"
+                        >
+                          Trước
+                        </button>
+                        <span className="text-[10px] text-gray-500">{currentProjectPage} / {totalProjectPages}</span>
+                        <button
+                          disabled={currentProjectPage === totalProjectPages}
+                          onClick={() => setCurrentProjectPage(p => Math.min(totalProjectPages, p + 1))}
+                          className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-[10px] rounded hover:border-[#e60012] disabled:opacity-50"
+                        >
+                          Sau
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

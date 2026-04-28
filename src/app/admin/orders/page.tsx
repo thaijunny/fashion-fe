@@ -14,6 +14,7 @@ import {
     Eye,
     AlertCircle,
     ChevronRight,
+    ChevronLeft,
     Filter
 } from 'lucide-react';
 import Link from 'next/link';
@@ -36,6 +37,9 @@ export default function AdminOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; orderId: string | null; currentStatus: string | null; nextStatus: string | null }>({
         isOpen: false,
@@ -44,17 +48,20 @@ export default function AdminOrdersPage() {
         nextStatus: null
     });
 
-    const loadOrders = async () => {
+    const loadOrders = async (page: number) => {
         if (!token) return;
         setLoading(true);
-        const data = await fetchAllOrdersAdmin(token);
-        setOrders(data);
+        const res = await fetchAllOrdersAdmin(token, page);
+        setOrders(res.orders);
+        setCurrentPage(res.currentPage);
+        setTotalPages(res.totalPages);
+        setTotalOrders(res.total || 0);
         setLoading(false);
     };
 
     useEffect(() => {
-        loadOrders();
-    }, [token]);
+        loadOrders(currentPage);
+    }, [token, currentPage]);
 
     const handleStatusUpdate = async () => {
         const { orderId, nextStatus } = confirmModal;
@@ -269,6 +276,45 @@ export default function AdminOrdersPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Footer */}
+            {totalPages > 1 && (
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between rounded-b-2xl">
+                    <p className="text-sm text-gray-500 font-medium">
+                        Hiển thị <span className="text-gray-900 font-bold">{orders.length}</span> trong số <span className="text-gray-900 font-bold">{totalOrders}</span> đơn hàng
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1 || loading}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${currentPage === i + 1
+                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                        : 'text-gray-600 hover:bg-white hover:border-gray-300 border border-transparent'
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages || loading}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
