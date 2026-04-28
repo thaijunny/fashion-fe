@@ -11,6 +11,8 @@ import {
     CheckCircle2,
     Clock,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 export default function AdminProjectsPage() {
@@ -19,6 +21,9 @@ export default function AdminProjectsPage() {
     const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState<'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalProjects, setTotalProjects] = useState(0);
 
     // Preview modal state
     const [previewProject, setPreviewProject] = useState<any>(null);
@@ -38,12 +43,15 @@ export default function AdminProjectsPage() {
     };
 
     useEffect(() => {
-        const loadProjects = async () => {
+        const loadProjects = async (page: number) => {
             if (!token) return;
             setLoading(true);
             try {
-                const data = await fetchAllProjectsAdmin(token);
-                setProjects(data);
+                const res = await fetchAllProjectsAdmin(token, page);
+                setProjects(res.data);
+                setCurrentPage(res.currentPage);
+                setTotalPages(res.totalPages);
+                setTotalProjects(res.total || 0);
             } catch (error) {
                 console.error('Error fetching admin projects:', error);
             } finally {
@@ -51,8 +59,8 @@ export default function AdminProjectsPage() {
             }
         };
 
-        loadProjects();
-    }, [token, filterType]);
+        loadProjects(currentPage);
+    }, [token, filterType, currentPage]);
 
     const filteredProjects = projects.filter(p =>
         p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -188,19 +196,44 @@ export default function AdminProjectsPage() {
                     </table>
                 </div>
 
-                <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                    <p>Hiển thị {filteredProjects.length} dự án</p>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                            <Clock size={12} />
-                            <span>Tất cả dự án đã lưu</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <CheckCircle2 size={12} className="text-green-500" />
-                            <span>Đã tích hợp đơn hàng</span>
+                {/* Pagination Footer */}
+                {totalPages > 1 && (
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between rounded-b-2xl">
+                        <p className="text-sm text-gray-500 font-medium">
+                            Hiển thị <span className="text-gray-900 font-bold">{projects.length}</span> trong số <span className="text-gray-900 font-bold">{totalProjects}</span> dự án
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1 || loading}
+                                className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: totalPages }).map((_, i) => (
+                                    <button
+                                        key={i + 1}
+                                        onClick={() => setCurrentPage(i + 1)}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${currentPage === i + 1
+                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                            : 'text-gray-600 hover:bg-white hover:border-gray-300 border border-transparent'
+                                            }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages || loading}
+                                className="p-2 border border-gray-300 rounded-lg hover:bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Preview Modal */}

@@ -57,8 +57,8 @@ export default function AccountPage() {
                         
                         // Combine and sort by date
                         const allOrders = [
-                            ...pOrders.map((o: any) => ({ ...o, type: 'product' })),
-                            ...dOrders.map((o: any) => ({ ...o, type: 'design' }))
+                            ...(pOrders.orders || []).map((o: any) => ({ ...o, type: 'product' })),
+                            ...(dOrders.data || []).map((o: any) => ({ ...o, type: 'design' }))
                         ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
                         const latestWithAddr = allOrders.find(o => o.shipping_address);

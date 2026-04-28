@@ -461,11 +461,11 @@ export async function fetchUserOrders(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/orders?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return { orders: [], totalPages: 1 };
+    if (!res.ok) return { orders: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { orders: data.orders || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return { orders: [], totalPages: 1 };
+    return { orders: [], totalPages: 1, total: 0 };
   }
 }
 
@@ -487,11 +487,11 @@ export async function fetchAllOrdersAdmin(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/orders/admin/all?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return { orders: [], totalPages: 1 };
+    if (!res.ok) return { orders: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { orders: data.orders || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return { orders: [], totalPages: 1 };
+    return { orders: [], totalPages: 1, total: 0 };
   }
 }
 
@@ -684,11 +684,11 @@ export async function fetchAllProjectsAdmin(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/projects/admin/all?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return { data: [], totalPages: 1 };
+    if (!res.ok) return { data: [], totalPages: 1, total: 0 };
     const data = await res.json();
-    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1 };
+    return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return { data: [], totalPages: 1 };
+    return { data: [], totalPages: 1, total: 0 };
   }
 }
 
@@ -781,11 +781,11 @@ export async function fetchUserProjects(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/projects?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) return { data: [], totalPages: 1 };
+    if (!res.ok) return { data: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
   } catch {
-    return { data: [], totalPages: 1 };
+    return { data: [], totalPages: 1, total: 0 };
   }
 }
 
@@ -815,10 +815,10 @@ export async function fetchMyDesignOrders(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/design-orders/my?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return { data: [], totalPages: 1 };
+    if (!res.ok) return { data: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
-  } catch { return { data: [], totalPages: 1 }; }
+  } catch { return { data: [], totalPages: 1, total: 0 }; }
 }
 
 export async function fetchDesignOrderById(id: string, token: string) {
@@ -836,10 +836,10 @@ export async function fetchAllDesignOrdersAdmin(token: string, page: number = 1)
     const res = await fetch(`${API_URL}/design-orders?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return { data: [], totalPages: 1 };
+    if (!res.ok) return { data: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
-  } catch { return { data: [], totalPages: 1 }; }
+  } catch { return { data: [], totalPages: 1, total: 0 }; }
 }
 
 export async function updateDesignOrderStatusAdmin(id: string, status: string, token: string) {
@@ -885,10 +885,10 @@ export async function fetchAllUsersAdmin(token: string, page: number = 1) {
     const res = await fetch(`${API_URL}/users?page=${page}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return { data: [], totalPages: 1 };
+    if (!res.ok) return { data: [], totalPages: 1, total: 0 };
     const data = await res.json();
     return { data: data.data || [], totalPages: data.total_pages || 1, currentPage: data.current_page || 1, total: data.total || 0 };
-  } catch { return { data: [], totalPages: 1 }; }
+  } catch { return { data: [], totalPages: 1, total: 0 }; }
 }
 
 export async function toggleBlockUser(id: string, token: string) {
