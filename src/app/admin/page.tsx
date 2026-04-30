@@ -11,7 +11,8 @@ import {
     Clock,
     ArrowUpRight,
     ArrowDownRight,
-    Loader2
+    Loader2,
+    PenTool
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -42,6 +43,7 @@ export default function AdminDashboardPage() {
     const statCards = [
         { name: 'Sản phẩm', value: stats?.totalProducts ?? 0, icon: Package, href: '/admin/products', color: 'bg-blue-50 text-blue-600' },
         { name: 'Đơn hàng', value: stats?.totalOrders ?? 0, icon: ShoppingBag, href: '/admin/orders', color: 'bg-emerald-50 text-emerald-600' },
+        { name: 'Đơn thiết kế', value: stats?.totalDesignOrders ?? 0, icon: PenTool, href: '/admin/design-orders', color: 'bg-purple-50 text-purple-600' },
         { name: 'Người dùng', value: stats?.totalUsers ?? 0, icon: Users, href: '/admin/users', color: 'bg-amber-50 text-amber-600' },
         { name: 'Doanh thu', value: formatPrice(stats?.totalRevenue ?? 0), icon: TrendingUp, href: '/admin/orders', color: 'bg-rose-50 text-rose-600' },
     ];
@@ -63,7 +65,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                 {statCards.map((stat) => (
                     <div key={stat.name} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
                         <div className="flex items-center justify-between mb-4">
@@ -103,8 +105,8 @@ export default function AdminDashboardPage() {
                             </div>
                         ) : activeTab.map((activity) => (
                             <div key={activity.id} className="p-6 flex gap-4 hover:bg-gray-50/80 transition-colors group">
-                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                    <ShoppingBag size={24} />
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${activity.type === 'design' ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                                    {activity.type === 'design' ? <PenTool size={24} /> : <ShoppingBag size={24} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-0.5">
